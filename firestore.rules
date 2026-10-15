@@ -1,0 +1,18 @@
+rules_version = '2';
+// Reglas de seguridad: solo los usuarios con sesión iniciada leen y escriben.
+// Las cuentas se crean en la consola de Firebase (Authentication > Usuarios).
+service cloud.firestore {
+  match /databases/{database}/documents {
+    match /{coleccion}/{id} {
+      allow read: if request.auth != null;
+      allow create, update: if request.auth != null
+        && request.resource.data.size() < 200;
+      allow delete: if request.auth != null;
+    }
+    // Resultados del análisis nocturno: solo los escribe la función de Python.
+    match /analitica/{id} {
+      allow read: if request.auth != null;
+      allow write: if false;
+    }
+  }
+}
