@@ -42,6 +42,7 @@ import {
   Vacio,
   useAvisos,
 } from '../components/ui';
+import { BotonesExcel } from '../components/BotonesExcel';
 
 type Vista = 'atenciones' | 'empresas' | 'filtros';
 const mesActual = () => hoyISO().slice(0, 7);
@@ -81,9 +82,12 @@ export default function Convenios() {
 
   const accion =
     vista === 'atenciones' ? (
-      <Boton icono={<Plus className="h-4 w-4" />} onClick={() => setAtencion('nueva')} disabled={empresas.length === 0}>
-        Registrar atención
-      </Boton>
+      <>
+        <BotonesExcel seccion="Convenios" importar={['convenios']} />
+        <Boton icono={<Plus className="h-4 w-4" />} onClick={() => setAtencion('nueva')} disabled={empresas.length === 0}>
+          Registrar atención
+        </Boton>
+      </>
     ) : vista === 'empresas' ? (
       <Boton icono={<Plus className="h-4 w-4" />} onClick={() => setEditEmp('nueva')}>
         Nueva empresa
@@ -301,7 +305,7 @@ function TabAtenciones({ onEditar, onNueva }: { onEditar: (a: AtencionConvenio) 
           titulo={atenciones.length === 0 ? 'Aún no hay atenciones de convenio' : 'No hay atenciones con esos filtros'}
           texto={
             atenciones.length === 0
-              ? 'Registra aquí cada carro de empresa que atiendas, o importa la hoja de convenios desde Importar Excel.'
+              ? 'Registra aquí cada carro de empresa que atiendas, o importa la hoja de convenios con el botón «Importar».'
               : 'Prueba con otro mes o con «Todos los meses».'
           }
           accion={atenciones.length === 0 ? <Boton onClick={onNueva}>Registrar atención</Boton> : undefined}

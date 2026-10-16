@@ -233,6 +233,21 @@ export default function Ajustes() {
             <Boton className="mt-4" variante="secundario" icono={<Download className="h-4 w-4" />} onClick={respaldo}>
               Descargar respaldo completo
             </Boton>
+            <p className="mt-5 text-sm text-gris">
+              O todo en un solo Excel con las columnas de los formatos del taller (prospectos, aceite, convenios, citas, inventario…). Cada sección también tiene su propio botón «Exportar».
+            </p>
+            <Boton
+              className="mt-3"
+              variante="secundario"
+              icono={<Download className="h-4 w-4" />}
+              onClick={async () => {
+                const { FORMATOS, descargar } = await import('../lib/exportar');
+                await descargar(FORMATOS, datos as any, {}, `autogas-exportacion-completa-${hoyISO()}.xlsx`);
+                avisar('Exportación completa descargada.');
+              }}
+            >
+              Exportar todo con formato del taller
+            </Boton>
           </Panel>
           <Panel titulo="Catálogo inicial">
             <p className="text-sm text-gris">

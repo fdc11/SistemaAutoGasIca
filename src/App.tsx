@@ -1,4 +1,3 @@
-import { lazy, Suspense } from 'react';
 import { Navigate, Route, Routes } from 'react-router-dom';
 import { AuthProvider, useAuth } from './data/auth';
 import { DataProvider } from './data/store';
@@ -16,9 +15,7 @@ import Aceite from './pages/Aceite';
 import Convenios from './pages/Convenios';
 import Inventario from './pages/Inventario';
 import Ajustes from './pages/Ajustes';
-import Exportar from './pages/Exportar';
 
-const Importar = lazy(() => import('./pages/Importar'));
 
 function Rutas() {
   const { usuario, cargando } = useAuth();
@@ -39,15 +36,6 @@ function Rutas() {
           <Route path="aceite" element={<Aceite />} />
           <Route path="convenios" element={<Convenios />} />
           <Route path="inventario" element={<Inventario />} />
-          <Route
-            path="importar"
-            element={
-              <Suspense fallback={<p className="text-sm text-gris">Cargando importador…</p>}>
-                <Importar />
-              </Suspense>
-            }
-          />
-          <Route path="exportar" element={<Exportar />} />
           <Route path="ajustes" element={<Ajustes />} />
           <Route path="*" element={<Navigate to="/" replace />} />
         </Route>

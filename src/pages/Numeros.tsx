@@ -95,7 +95,7 @@ export default function Numeros() {
         acciones={
           <>
             <Boton variante="secundario" icono={<FileUp className="h-4 w-4" />} onClick={() => setImportar(true)}>
-              Importar Excel
+              Importar
             </Boton>
             <Boton icono={<Plus className="h-4 w-4" />} onClick={() => setEditar('nuevo')}>
               Registrar número

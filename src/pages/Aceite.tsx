@@ -41,6 +41,7 @@ import {
   useAvisos,
 } from '../components/ui';
 import { clientePorPlaca } from '../lib/analisis';
+import { BotonesExcel } from '../components/BotonesExcel';
 
 const RESPUESTAS = ['Agendó cita', 'Aún no le toca', 'No responde', 'Lo hizo en otro taller', 'Vendió el vehículo', 'No desea'];
 
@@ -109,9 +110,12 @@ export default function Aceite() {
         titulo="Cambio de aceite"
         descripcion={`El sistema calcula cuándo le toca a cada vehículo: su propio intervalo si ya volvió antes, o ${DIAS_ENTRE_CAMBIOS} días si es su primera vez.`}
         acciones={
-          <Boton icono={<Plus className="h-4 w-4" />} onClick={() => setNuevo(true)}>
-            Registrar servicio
-          </Boton>
+          <>
+            <BotonesExcel seccion="Cambio de aceite" importar={['aceite']} exportar={['aceite']} />
+            <Boton icono={<Plus className="h-4 w-4" />} onClick={() => setNuevo(true)}>
+              Registrar servicio
+            </Boton>
+          </>
         }
       />
 

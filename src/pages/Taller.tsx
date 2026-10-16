@@ -9,6 +9,7 @@ import type { Area, Ingreso } from '../lib/types';
 import { clientePorPlaca } from '../lib/analisis';
 import { ahoraISO, cx, fechaCorta, horaDe, hoyISO, normalizarPlaca, placaValida } from '../lib/utils';
 import { Boton, Campo, Encabezado, Entrada, Etiqueta, Modal, Panel, Selector, Tabla, Td, Th, Vacio, useAvisos } from '../components/ui';
+import { BotonesExcel } from '../components/BotonesExcel';
 
 const duracion = (a: string, b?: string) => {
   const m = differenceInMinutes(b ? parseISO(b) : new Date(), parseISO(a));
@@ -41,9 +42,12 @@ export default function Taller() {
         titulo="Control de taller"
         descripcion="Qué vehículos están dentro, en qué área y con qué técnico. Al registrar la salida, el cliente pasa a Atendido."
         acciones={
-          <Boton icono={<LogIn className="h-4 w-4" />} onClick={() => setNuevo(true)}>
-            Registrar ingreso
-          </Boton>
+          <>
+            <BotonesExcel seccion="Control de taller" exportar={['taller']} />
+            <Boton icono={<LogIn className="h-4 w-4" />} onClick={() => setNuevo(true)}>
+              Registrar ingreso
+            </Boton>
+          </>
         }
       />
 

@@ -1,11 +1,12 @@
 import { useMemo, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { Download, MessageCircle, UserPlus, Users } from 'lucide-react';
+import { MessageCircle, UserPlus, Users } from 'lucide-react';
 import { useActivos, useDatos } from '../data/store';
 import { CANALES, ESTADOS, estadoInfo, nombreCanal } from '../lib/catalogos';
 import type { EstadoCliente } from '../lib/types';
 import { cx, enlaceWhatsApp, fechaCorta, formatoCelular, hoyISO, plano } from '../lib/utils';
 import { Boton, Buscador, Encabezado, Entrada, Etiqueta, Paginacion, Panel, Pestanas, Selector, Tabla, Td, Th, Vacio } from '../components/ui';
+import { BotonesExcel } from '../components/BotonesExcel';
 
 const POR_PAGINA = 25;
 
@@ -70,9 +71,8 @@ export default function Clientes() {
   const visibles = lista.slice((pagina - 1) * POR_PAGINA, pagina * POR_PAGINA);
   const filtrando = q || canal || area || asesor || desde || hasta;
 
-  const exportar = async () => {
-    const XLSX = await import('xlsx');
-    const filas = lista.map((c) => ({
+  const filasLista = () =>
+    lista.map((c) => ({
       Nombre: c.nombre,
       Celular: c.celular,
       Ciudad: c.ciudad ?? '',
@@ -88,11 +88,6 @@ export default function Clientes() {
       'Fecha de contacto': c.fechaContacto,
       'Registrado por': c.creadoPor,
     }));
-    const ws = XLSX.utils.json_to_sheet(filas);
-    const wb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, ws, 'Clientes');
-    XLSX.writeFile(wb, `clientes-autogas-${hoyISO()}.xlsx`);
-  };
 
   const pestañas = [
     { id: 'todos' as const, nombre: 'Todos', cuenta: conteo.todos },
@@ -106,9 +101,20 @@ export default function Clientes() {
         descripcion="Todos los clientes de todos los canales. Busca por nombre, celular o placa."
         acciones={
           <>
-            <Boton variante="secundario" icono={<Download className="h-4 w-4" />} onClick={exportar} disabled={!lista.length}>
-              Exportar a Excel
-            </Boton>
+            <BotonesExcel
+              seccion="Base de clientes"
+              importar={['baseClientes', 'prospectos', 'llamadas', 'generico']}
+              exportar={['baseClientes', 'prospectos', 'llamadas']}
+              extras={[
+                {
+                  id: 'clientes-lista',
+                  nombre: 'La lista que estás viendo',
+                  descripcion: 'Los clientes con los filtros que tienes puestos ahora (área, canal, estado, búsqueda).',
+                  hoja: 'Clientes',
+                  filas: filasLista,
+                },
+              ]}
+            />
             <Link to="/registrar">
               <Boton icono={<UserPlus className="h-4 w-4" />}>Registrar cliente</Boton>
             </Link>

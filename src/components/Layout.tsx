@@ -2,21 +2,7 @@ import { useEffect, useState, type ReactNode } from 'react';
 import { NavLink, Outlet, useLocation } from 'react-router-dom';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
-import {
-  LayoutGrid,
-  UserPlus,
-  Users,
-  CalendarDays,
-  Wrench,
-  Droplet,
-  Building2,
-  Boxes,
-  FileUp,
-  FileDown,
-  Settings,
-  LogOut,
-  Menu,
-  X, PhoneIncoming } from 'lucide-react';
+import { LayoutGrid, UserPlus, Users, CalendarDays, Wrench, Droplet, Building2, Boxes, Settings, LogOut, Menu, X, PhoneIncoming } from 'lucide-react';
 import { useAuth } from '../data/auth';
 import { useDatos } from '../data/store';
 import { cx } from '../lib/utils';
@@ -59,8 +45,6 @@ const NAV: { grupo?: string; items: { a: string; t: string; i: ReactNode; fin?: 
     items: [
       { a: '/convenios', t: 'Convenios', i: <Building2 /> },
       { a: '/inventario', t: 'Inventario', i: <Boxes /> },
-      { a: '/importar', t: 'Importar Excel', i: <FileUp /> },
-      { a: '/exportar', t: 'Exportar Excel', i: <FileDown /> },
     ],
   },
 ];

@@ -23,6 +23,7 @@ import {
   Vacio,
   useAvisos,
 } from '../components/ui';
+import { BotonesExcel } from '../components/BotonesExcel';
 
 const orden = (c: string) => CATEGORIAS.findIndex((x) => x.id === c);
 
@@ -72,6 +73,7 @@ export default function Inventario() {
         descripcion="El stock se calcula con las entradas y salidas. Cada salida queda ligada a la placa del vehículo o a la venta."
         acciones={
           <>
+            <BotonesExcel seccion="Inventario" importar={['refrigerante']} exportar={['stock', 'movimientos', 'refrigerante']} />
             <Boton variante="secundario" icono={<ArrowDownToLine className="h-4 w-4" />} onClick={() => setMov({ tipo: 'entrada' })}>
               Registrar entrada
             </Boton>

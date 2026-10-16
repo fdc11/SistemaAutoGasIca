@@ -9,6 +9,7 @@ import { AREAS, CANALES, CUPOS_POR_HORA, ESTADOS_CITA, HORAS_SABADO, HORAS_SEMAN
 import type { Area, Bloqueo, Canal, Cita, Cliente, EstadoCita, Nuevo, Vehiculo } from '../lib/types';
 import { ahoraISO, celularValido, cx, enlaceWhatsApp, formatoCelular, hoyISO, normalizarCelular, normalizarPlaca, placaValida, plano } from '../lib/utils';
 import { AreaTexto, Boton, BotonIcono, Campo, Grupo, Encabezado, Entrada, Etiqueta, Modal, Panel, Pestanas, Selector, useAvisos } from '../components/ui';
+import { BotonesExcel } from '../components/BotonesExcel';
 
 type Vista = 'semana' | 'dia';
 type Hueco = { fecha: string; hora: string; area: Area };
@@ -334,6 +335,7 @@ export default function Agenda() {
         descripcion="Dos cupos por hora en cada área. Toca un cupo libre para agendar o bloquear."
         acciones={
           <div className="flex flex-wrap items-center gap-2">
+          <BotonesExcel seccion="Agenda" importar={['agenda']} exportar={['citas']} />
           <Boton variante="secundario" onClick={() => setRecordar(true)}>
             <Bell className="h-4 w-4" />
             Recordar citas de {format(parseISO(manana), 'EEEE', { locale: es })}
