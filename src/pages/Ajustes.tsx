@@ -18,6 +18,7 @@ const NOMBRES: Record<NombreColeccion, string> = {
   serviciosAceite: 'Servicio de aceite',
   empresas: 'Empresa',
   filtros: 'Filtro',
+  atenciones: 'Atención de convenio',
   productos: 'Producto',
   movimientos: 'Movimiento',
   importaciones: 'Importación',

@@ -187,32 +187,27 @@ export const FORMATOS: Formato[] = [
     id: 'convenios',
     nombre: 'Convenios de cambio de aceite',
     hoja: 'CONVENIOS',
-    descripcion: 'Clientes de empresas con convenio, con su vehículo y los filtros del modelo. Igual a la pestaña de convenios.',
+    descripcion: 'Atenciones a vehículos de empresas con convenio: cliente, empresa, servicio, placa, filtros y monto. Igual a la pestaña de convenios.',
     filtraFecha: true,
     construir(d, r) {
-      const { vehiculos, empresas } = indices(d);
-      const filtros = act(d.filtros);
-      return act(d.clientes)
-        .filter((c) => (c.canal === 'convenio' || c.empresaId) && enRango(c.fechaContacto, r))
-        .sort((a, b) => a.fechaContacto.localeCompare(b.fechaContacto))
-        .flatMap((c) => {
-          const vs = vehiculos.get(c.id) ?? [undefined];
-          return vs.map((v) => {
-            const f = v ? filtros.find((x) => x.marca.toLowerCase() === (v.marca ?? '').toLowerCase() && (v.modelo ?? '').toLowerCase().includes(x.modelo.toLowerCase().split(' ')[0])) : undefined;
-            return {
-              FECHA: fecha(c.fechaContacto),
-              TELEFONO: c.celular || '',
-              'NOMBRE COMPLETO/CONTACTO': c.nombre,
-              EMPRESA: empresas.get(c.empresaId ?? '') ?? '',
-              INTERES: c.interesDetalle || c.interes || '',
-              PLACA: v?.placa ?? '',
-              MARCA: v?.marca ?? '',
-              'MODELO Y AÑO': [v?.modelo, v?.anio].filter(Boolean).join(' '),
-              'FILTRO DE AIRE': f?.filtroAire ?? '',
-              'FILTRO DE ACEITE': f?.filtroAceite ?? '',
-            };
-          });
-        });
+      const { empresas } = indices(d);
+      return act(d.atenciones)
+        .filter((a) => enRango(a.fecha, r))
+        .sort((a, b) => a.fecha.localeCompare(b.fecha))
+        .map((a) => ({
+          FECHA: fecha(a.fecha),
+          TELEFONO: a.celular || '',
+          'NOMBRE COMPLETO/CONTACTO': a.nombre,
+          EMPRESA: empresas.get(a.empresaId) ?? '',
+          INTERES: a.detalle || a.servicio,
+          PLACA: a.placa,
+          MARCA: a.marca ?? '',
+          'MODELO Y AÑO': a.modelo ?? '',
+          'FILTRO DE AIRE': a.filtroAire ?? '',
+          'FILTRO DE ACEITE': a.filtroAceite ?? '',
+          MONTO: a.monto ?? '',
+          COBRO: a.cobro === 'cobrado' ? 'Cobrado' : 'Pendiente',
+        }));
     },
   },
   {

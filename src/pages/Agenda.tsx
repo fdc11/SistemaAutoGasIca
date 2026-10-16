@@ -2,13 +2,12 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { addDays, differenceInCalendarDays, format, getDay, parseISO, startOfWeek } from 'date-fns';
 import { es } from 'date-fns/locale';
-import { Bell, Check, ChevronLeft, ChevronRight, Lock, MessageCircle, Plus, X } from 'lucide-react';
+import { AlertTriangle, Bell, Check, ChevronLeft, ChevronRight, Lock, MessageCircle, Phone, Plus, Search, UserCheck, X } from 'lucide-react';
 import { useDatos, useActivos } from '../data/store';
 import { useAcciones } from '../data/acciones';
-import { AREAS, CUPOS_POR_HORA, ESTADOS_CITA, HORAS_SABADO, HORAS_SEMANA, nombreArea } from '../lib/catalogos';
-import type { Area, Bloqueo, Cita, Cliente, EstadoCita, Vehiculo } from '../lib/types';
-import { ahoraISO, cx, enlaceWhatsApp, formatoCelular, hoyISO, normalizarPlaca, placaValida } from '../lib/utils';
-import { clientePorPlaca } from '../lib/analisis';
+import { AREAS, CANALES, CUPOS_POR_HORA, ESTADOS_CITA, HORAS_SABADO, HORAS_SEMANA, nombreArea } from '../lib/catalogos';
+import type { Area, Bloqueo, Canal, Cita, Cliente, EstadoCita, Nuevo, Vehiculo } from '../lib/types';
+import { ahoraISO, celularValido, cx, enlaceWhatsApp, formatoCelular, hoyISO, normalizarCelular, normalizarPlaca, placaValida, plano } from '../lib/utils';
 import { AreaTexto, Boton, BotonIcono, Campo, Encabezado, Entrada, Etiqueta, Modal, Panel, Pestanas, Selector, useAvisos } from '../components/ui';
 
 type Vista = 'semana' | 'dia';
@@ -30,8 +29,46 @@ function siguienteDiaHabil(desde = new Date()) {
   return f(d);
 }
 
-/** Nombre corto para mostrar: «Cristian Rangel», nunca «Sin nombre». */
-const nombreVisible = (c?: Cliente) => (c?.nombre && !/^sin nombre$/i.test(c.nombre.trim()) ? c.nombre : undefined);
+/** Nombres de relleno que dejó la importación de los Excel («Sin nombre», «Cliente Y2B688»). */
+const esNombreRelleno = (n?: string) => !n?.trim() || /^sin nombre$/i.test(n.trim()) || /^cliente\s+[a-z0-9]{6}$/i.test(n.trim());
+
+/** Nombre real para mostrar: «Cristian Rangel», nunca «Sin nombre» ni «Cliente ABC123». */
+const nombreVisible = (c?: Cliente) => (c && !esNombreRelleno(c.nombre) ? c.nombre : undefined);
+
+const fechaTexto = (iso: string) => format(parseISO(iso), "EEEE d 'de' MMMM", { locale: es });
+
+function mensajeConfirmacion(cita: Pick<Cita, 'fecha' | 'hora' | 'servicio' | 'placa'>, nombre?: string) {
+  const primer = nombre && !esNombreRelleno(nombre) ? ' ' + nombre.trim().split(' ')[0] : '';
+  return (
+    `Hola${primer}, te saludamos de AutoGas Ica. ` +
+    `Tu cita de ${cita.servicio.toLowerCase()} quedó agendada para el ${fechaTexto(cita.fecha)} a las ${cita.hora}` +
+    `${cita.placa ? ` (vehículo de placa ${cita.placa})` : ''}. ` +
+    'Un día antes te escribimos para recordártela. ¡Gracias por confiar en nosotros!'
+  );
+}
+
+/** Canales con los que un cliente puede pedir cita (convenio se registra desde Registrar cliente). */
+const CANALES_CITA = CANALES.filter((c) => c.id !== 'convenio');
+
+function SelectorCanal({ valor, onCambio }: { valor: Canal; onCambio: (c: Canal) => void }) {
+  return (
+    <div className="flex flex-wrap gap-1.5">
+      {CANALES_CITA.map((c) => (
+        <button
+          key={c.id}
+          type="button"
+          onClick={() => onCambio(c.id)}
+          className={cx(
+            'rounded-full border px-3 py-1 text-[13px] font-semibold',
+            valor === c.id ? 'border-carbon bg-carbon text-white' : 'border-linea-fuerte bg-white text-gris hover:text-tinta',
+          )}
+        >
+          {c.nombre}
+        </button>
+      ))}
+    </div>
+  );
+}
 
 function mensajeRecordatorio(cita: Cita, cliente?: Cliente) {
   const nombre = nombreVisible(cliente)?.split(' ')[0];
@@ -62,6 +99,40 @@ function useClienteDeCita() {
     }),
     [porId, porPlaca],
   );
+}
+
+type Coincidencia = { cliente: Cliente; placas: string[] };
+
+/** Busca clientes de la base por nombre, celular o placa (ignora tildes, espacios y guiones). */
+function useBuscarClientes() {
+  const clientes = useActivos('clientes');
+  const vehiculos = useActivos('vehiculos');
+  const placasDe = useMemo(() => {
+    const m = new Map<string, string[]>();
+    for (const v of vehiculos) if (v.clienteId) m.set(v.clienteId, [...(m.get(v.clienteId) ?? []), v.placa]);
+    return m;
+  }, [vehiculos]);
+  const buscar = useCallback(
+    (q: string, max = 6): Coincidencia[] => {
+      const t = plano(q);
+      const dig = q.replace(/\D/g, '');
+      const pla = normalizarPlaca(q);
+      if (t.length < 2) return [];
+      const out: Coincidencia[] = [];
+      for (const c of clientes) {
+        const placas = placasDe.get(c.id) ?? [];
+        const ok =
+          (!esNombreRelleno(c.nombre) && plano(c.nombre).includes(t)) ||
+          (dig.length >= 3 && c.celular.includes(dig)) ||
+          (pla.length >= 3 && placas.some((p) => p.includes(pla)));
+        if (ok) out.push({ cliente: c, placas });
+        if (out.length >= max) break;
+      }
+      return out;
+    },
+    [clientes, placasDe],
+  );
+  return { buscar, placasDe };
 }
 
 /** Marca la cita como asistida y registra el ingreso al taller (una sola vez). */
@@ -160,6 +231,7 @@ export default function Agenda() {
           const pendiente = c.estado === 'agendada';
           const llegoONo = pendiente && fecha <= hoyISO();
           const avisable = pendiente && fecha >= hoyISO() && cliente?.celular;
+          const sinCelular = pendiente && fecha >= hoyISO() && !cliente?.celular && !llegoONo;
           return (
             <div key={c.id} className={cx('group/cita relative rounded-md border transition-colors hover:border-tinta/40', TONO_CITA[c.estado])}>
               <button type="button" onClick={() => setAbierta(c)} className="block w-full px-2 pb-1.5 pt-1.5 text-left">
@@ -169,8 +241,18 @@ export default function Agenda() {
                   {c.servicio}
                 </span>
               </button>
-              {(llegoONo || avisable) && (
+              {(llegoONo || avisable || sinCelular) && (
                 <div className="flex items-center gap-1 border-t border-black/5 px-1.5 py-1">
+                  {sinCelular && (
+                    <button
+                      type="button"
+                      onClick={() => setAbierta(c)}
+                      title="Sin celular: no se le puede recordar. Toca para agregarlo."
+                      className="flex h-6 items-center gap-1 rounded px-1.5 text-[11px] font-semibold text-aviso hover:bg-white/70"
+                    >
+                      <Phone className="h-3.5 w-3.5" /> Agregar celular
+                    </button>
+                  )}
                   {llegoONo && (
                     <>
                       <AccionCita
@@ -274,7 +356,15 @@ export default function Agenda() {
             </BotonIcono>
             <h2 className="ml-2 text-[15px] font-semibold first-letter:uppercase">{titulo}</h2>
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex flex-wrap items-center gap-2">
+            <BuscarCita
+              citas={citas}
+              onElegir={(c) => {
+                setAncla(c.fecha);
+                setArea(c.area);
+                setAbierta(c);
+              }}
+            />
             <Entrada type="date" value={ancla} onChange={(e) => e.target.value && setAncla(e.target.value)} className="h-9 !w-40" aria-label="Ir a fecha" />
             <Boton tam="sm" variante="secundario" onClick={() => setAncla(hoyISO())}>
               Hoy
@@ -359,6 +449,89 @@ export default function Agenda() {
       {recordar && <Recordatorios citas={porRecordar} fecha={manana} onCerrar={() => setRecordar(false)} />}
       {bloqueo && <DetalleBloqueo bloqueo={bloqueo} onCerrar={() => setBloqueo(null)} />}
     </>
+  );
+}
+
+/** Buscador rápido: «¿cuándo es la cita de ABC123?» por placa, nombre o celular. */
+function BuscarCita({ citas, onElegir }: { citas: Cita[]; onElegir: (c: Cita) => void }) {
+  const [q, setQ] = useState('');
+  const [abierto, setAbierto] = useState(false);
+  const deCita = useClienteDeCita();
+  const hoy = hoyISO();
+  const resultados = useMemo(() => {
+    const t = plano(q);
+    if (t.length < 2) return [];
+    const dig = q.replace(/\D/g, '');
+    const pla = normalizarPlaca(q);
+    const lista = citas.filter((c) => {
+      const { cliente } = deCita(c);
+      return (
+        (pla.length >= 3 && c.placa.includes(pla)) ||
+        (!!nombreVisible(cliente) && plano(cliente!.nombre).includes(t)) ||
+        (dig.length >= 3 && !!cliente?.celular?.includes(dig))
+      );
+    });
+    // Primero las próximas (la más cercana arriba), luego las pasadas (la más reciente arriba).
+    const prox = lista.filter((c) => c.fecha >= hoy).sort((a, b) => (a.fecha + a.hora).localeCompare(b.fecha + b.hora));
+    const pas = lista.filter((c) => c.fecha < hoy).sort((a, b) => (b.fecha + b.hora).localeCompare(a.fecha + a.hora));
+    return [...prox, ...pas].slice(0, 8);
+  }, [q, citas, deCita, hoy]);
+
+  return (
+    <div className="relative">
+      <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gris-claro" />
+      <Entrada
+        value={q}
+        onChange={(e) => {
+          setQ(e.target.value);
+          setAbierto(true);
+        }}
+        onFocus={() => setAbierto(true)}
+        onBlur={() => setTimeout(() => setAbierto(false), 150)}
+        onKeyDown={(e) => e.key === 'Escape' && setQ('')}
+        placeholder="Buscar cita: placa, nombre o celular"
+        className="h-9 !w-64 pl-9"
+        aria-label="Buscar cita"
+      />
+      {abierto && plano(q).length >= 2 && (
+        <div className="absolute right-0 z-30 mt-1 w-80 overflow-hidden rounded-md border border-linea bg-white shadow-modal">
+          {resultados.length === 0 ? (
+            <p className="px-3 py-3 text-sm text-gris">No hay citas que coincidan.</p>
+          ) : (
+            <ul className="max-h-80 divide-y divide-linea overflow-y-auto">
+              {resultados.map((c) => {
+                const { cliente } = deCita(c);
+                const nombre = nombreVisible(cliente);
+                const e = ESTADOS_CITA.find((x) => x.id === c.estado)!;
+                return (
+                  <li key={c.id}>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        onElegir(c);
+                        setQ('');
+                      }}
+                      className="flex w-full items-center gap-3 px-3 py-2 text-left hover:bg-fondo"
+                    >
+                      <div className="min-w-0 flex-1">
+                        <p className="truncate text-sm font-semibold">
+                          {nombre ?? c.placa}
+                          {nombre && c.placa && <span className="ml-1 font-display tracking-wide text-gris num">{c.placa}</span>}
+                        </p>
+                        <p className="truncate text-xs text-gris first-letter:uppercase">
+                          {fechaTexto(c.fecha)} · {c.hora} · {c.servicio}
+                        </p>
+                      </div>
+                      <Etiqueta tono={e.tono}>{e.nombre}</Etiqueta>
+                    </button>
+                  </li>
+                );
+              })}
+            </ul>
+          )}
+        </div>
+      )}
+    </div>
   );
 }
 
@@ -462,58 +635,204 @@ function FilaHora({ hora, children }: { hora: string; children: React.ReactNode 
   );
 }
 
+type Agendada = { cita: Cita; nombre: string; celular: string };
+
 function NuevaCita({ hueco, onCerrar }: { hueco: Hueco; onCerrar: () => void }) {
   const { crear, editar, listas, datos } = useDatos();
-  const { asegurarVehiculo, autor } = useAcciones();
+  const { buscarExistente, registrar, autor } = useAcciones();
+  const { buscar, placasDe } = useBuscarClientes();
   const avisar = useAvisos();
   const [modo, setModo] = useState<'cita' | 'bloqueo'>('cita');
+  const [busqueda, setBusqueda] = useState('');
+  const [elegido, setElegido] = useState<Cliente | null>(null);
+  const [nombre, setNombre] = useState('');
+  const [celular, setCelular] = useState('');
   const [placa, setPlaca] = useState('');
+  const [canal, setCanal] = useState<Canal>('whatsapp');
   const [servicio, setServicio] = useState('');
   const [notas, setNotas] = useState('');
   const [motivo, setMotivo] = useState('');
   const [agendadoPor, setAgendadoPor] = useState(autor);
   const [error, setError] = useState('');
+  const [guardando, setGuardando] = useState(false);
+  const [hecho, setHecho] = useState<Agendada | null>(null);
 
+  const cel = normalizarCelular(celular);
+  const celEscrito = celular.replace(/\D/g, '');
   const p = normalizarPlaca(placa);
-  const { cliente, vehiculo } = placaValida(p) ? clientePorPlaca(p, datos.vehiculos, datos.clientes) : { cliente: undefined, vehiculo: undefined };
+  const coincidencias = elegido ? [] : buscar(busqueda);
+  const placasCliente = elegido ? placasDe.get(elegido.id) ?? [] : [];
+
+  // Si escriben a mano un celular o placa que ya existe, se ofrece usar ese cliente (evita duplicados).
+  const yaExiste = useMemo(() => {
+    if (elegido) return undefined;
+    const { cliente } = buscarExistente(celularValido(cel) ? cel : undefined, placaValida(p) ? p : undefined);
+    return cliente;
+  }, [elegido, cel, p]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Otra cita pendiente del mismo vehículo o cliente (para no agendarlo dos veces).
+  const otraCita = useMemo(() => {
+    const idCliente = elegido?.id ?? yaExiste?.id;
+    return datos.citas
+      .filter((c) => !c.eliminado && c.estado === 'agendada' && c.fecha >= hoyISO())
+      .filter((c) => (placaValida(p) && c.placa === p) || (!!idCliente && c.clienteId === idCliente))
+      .sort((a, b) => (a.fecha + a.hora).localeCompare(b.fecha + b.hora))[0];
+  }, [datos.citas, elegido, yaExiste, p]);
+
+  const elegir = (c: Cliente) => {
+    const placas = placasDe.get(c.id) ?? [];
+    setElegido(c);
+    setNombre(esNombreRelleno(c.nombre) ? '' : c.nombre);
+    setCelular(c.celular ?? '');
+    setPlaca(placas.length === 1 ? placas[0] : '');
+    setBusqueda('');
+    setError('');
+  };
+  const soltar = () => {
+    setElegido(null);
+    setNombre('');
+    setCelular('');
+    setPlaca('');
+  };
 
   const guardar = async () => {
+    setError('');
     if (modo === 'bloqueo') {
       if (!motivo.trim()) return setError('Escribe el motivo del bloqueo.');
       await crear('bloqueos', { ...hueco, motivo: motivo.trim() });
       avisar('Cupo bloqueado.');
       return onCerrar();
     }
-    if (!placaValida(p)) return setError('Escribe una placa válida de 6 caracteres.');
+    if (!elegido && !nombre.trim()) return setError('Escribe el nombre del cliente.');
+    if (celEscrito && !celularValido(cel)) return setError('El celular debe tener 9 dígitos y empezar en 9.');
+    if (placa && !placaValida(p)) return setError('La placa debe tener 6 caracteres (letras y números).');
+    if (!cel && !p) return setError('Pon al menos el celular o la placa para poder ubicar al cliente.');
     if (!servicio) return setError('Elige el servicio.');
-    const vehiculoId = await asegurarVehiculo(p);
-    await crear('citas', {
-      ...hueco,
-      placa: p,
-      clienteId: cliente?.id,
-      servicio,
-      notas: notas || undefined,
-      estado: 'agendada',
-      agendadoPor,
-    });
-    if (cliente && !['atendido', 'perdido'].includes(cliente.estado)) await editar('clientes', cliente.id, { estado: 'cita' });
-    avisar(`Cita agendada para ${p} a las ${hueco.hora}.`);
-    onCerrar();
-    void vehiculoId;
+
+    setGuardando(true);
+    try {
+      const detalle = `Cita agendada: ${servicio}, ${fechaTexto(hueco.fecha)} a las ${hueco.hora} (${nombreArea(hueco.area)}).`;
+      let clienteId: string;
+      let nombreFinal = nombre.trim();
+
+      if (elegido) {
+        clienteId = elegido.id;
+        const patch: Partial<Cliente> = { estado: 'cita', fechaCita: hueco.fecha, ultimoContacto: hoyISO() };
+        if (nombreFinal && nombreFinal !== elegido.nombre) patch.nombre = nombreFinal;
+        if (cel && cel !== elegido.celular) patch.celular = cel;
+        await editar('clientes', clienteId, patch);
+        if (!nombreFinal) nombreFinal = elegido.nombre;
+        if (p) {
+          const v = datos.vehiculos.find((x) => x.placa === p && !x.eliminado);
+          if (!v) await crear('vehiculos', { placa: p, clienteId });
+          else if (!v.clienteId) await editar('vehiculos', v.id, { clienteId });
+        }
+        await crear('interacciones', {
+          clienteId,
+          fecha: ahoraISO(),
+          tipo: canal === 'llamada' || canal === 'whatsapp' || canal === 'presencial' ? canal : 'nota',
+          comentario: detalle,
+        });
+      } else {
+        // Cliente nuevo: queda guardado en la base de clientes con su vehículo y su historial.
+        const r = await registrar({
+          nombre: nombreFinal,
+          celular: cel,
+          canal,
+          placa: p || undefined,
+          interes: servicio,
+          estado: 'cita',
+          tipoInteraccion: canal === 'llamada' || canal === 'whatsapp' || canal === 'presencial' ? canal : 'nota',
+          comentario: detalle,
+        });
+        clienteId = r.clienteId;
+        const existente = datos.clientes.find((c) => c.id === clienteId);
+        const patch: Partial<Cliente> = { fechaCita: hueco.fecha, ultimoContacto: hoyISO() };
+        // Si ya existía con un nombre de relleno, se corrige con el nombre que dieron ahora.
+        if (existente && esNombreRelleno(existente.nombre) && nombreFinal) patch.nombre = nombreFinal;
+        await editar('clientes', clienteId, patch);
+      }
+
+      const nueva: Nuevo<Cita> = {
+        ...hueco,
+        placa: p,
+        clienteId,
+        servicio,
+        notas: notas.trim() || undefined,
+        estado: 'agendada',
+        agendadoPor,
+      };
+      const id = await crear('citas', nueva);
+      avisar(`Cita agendada para ${nombreFinal || p} a las ${hueco.hora}.`);
+      setHecho({ cita: { ...(nueva as Cita), id }, nombre: nombreFinal, celular: cel || elegido?.celular || '' });
+    } catch (e) {
+      setError('No se pudo guardar. Revisa la conexión e inténtalo otra vez.');
+      console.error(e);
+    } finally {
+      setGuardando(false);
+    }
   };
+
+  const desc = `${fechaTexto(hueco.fecha)} · ${hueco.hora} · ${nombreArea(hueco.area)}`;
+
+  // Paso final: cita guardada, ofrecer confirmación por WhatsApp.
+  if (hecho) {
+    return (
+      <Modal
+        abierto
+        onCerrar={onCerrar}
+        titulo="Cita agendada"
+        descripcion={desc}
+        ancho="sm"
+        pie={<Boton onClick={onCerrar}>Listo</Boton>}
+      >
+        <div className="flex items-start gap-3">
+          <span className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-ok-suave text-ok">
+            <Check className="h-4 w-4" />
+          </span>
+          <div className="text-sm">
+            <p className="font-semibold">{hecho.nombre || hecho.cita.placa}</p>
+            <p className="text-gris">
+              {hecho.cita.servicio}
+              {hecho.cita.placa && <span className="num"> · {hecho.cita.placa}</span>}
+              {hecho.celular && <span className="num"> · {formatoCelular(hecho.celular)}</span>}
+            </p>
+            <p className="mt-1 text-xs text-gris">Sus datos ya quedaron en la base de clientes.</p>
+          </div>
+        </div>
+        {hecho.celular ? (
+          <a
+            href={enlaceWhatsApp(hecho.celular, mensajeConfirmacion(hecho.cita, hecho.nombre))}
+            target="_blank"
+            rel="noreferrer"
+            onClick={() => void editar('citas', hecho.cita.id, { confirmadoEn: ahoraISO() })}
+            className="mt-5 flex h-10 w-full items-center justify-center gap-2 rounded-md bg-[#1E7B4F] text-sm font-semibold text-white hover:bg-[#186641]"
+          >
+            <MessageCircle className="h-4 w-4" /> Enviar confirmación por WhatsApp
+          </a>
+        ) : (
+          <p className="mt-5 rounded-md bg-aviso-suave px-3 py-2 text-[13px] text-aviso">
+            No tiene celular: no se le podrá enviar confirmación ni recordatorio.
+          </p>
+        )}
+      </Modal>
+    );
+  }
 
   return (
     <Modal
       abierto
       onCerrar={onCerrar}
       titulo={modo === 'cita' ? 'Agendar cita' : 'Bloquear cupo'}
-      descripcion={`${format(parseISO(hueco.fecha), "EEEE d 'de' MMMM", { locale: es })} · ${hueco.hora} · ${nombreArea(hueco.area)}`}
+      descripcion={desc}
       pie={
         <>
           <Boton variante="secundario" onClick={onCerrar}>
             Cancelar
           </Boton>
-          <Boton onClick={guardar}>{modo === 'cita' ? 'Agendar cita' : 'Bloquear cupo'}</Boton>
+          <Boton onClick={guardar} disabled={guardando}>
+            {guardando ? 'Guardando…' : modo === 'cita' ? 'Agendar cita' : 'Bloquear cupo'}
+          </Boton>
         </>
       }
     >
@@ -534,44 +853,143 @@ function NuevaCita({ hueco, onCerrar }: { hueco: Hueco; onCerrar: () => void }) 
       </div>
       {modo === 'cita' ? (
         <div className="space-y-4">
-          <Campo etiqueta="Placa" requerido>
-            <Entrada value={placa} onChange={(e) => setPlaca(e.target.value.toUpperCase())} placeholder="ABC123" />
-          </Campo>
-          {placaValida(p) && (
-            <div className="rounded-md bg-fondo px-3 py-2.5 text-sm">
-              {cliente ? (
-                <>
-                  <span className="font-semibold">{cliente.nombre}</span> · <span className="num">{formatoCelular(cliente.celular)}</span>
-                  {vehiculo?.marca && <span className="text-gris"> · {vehiculo.marca} {vehiculo.modelo}</span>}
-                </>
-              ) : vehiculo ? (
-                <span className="text-gris">Placa registrada sin cliente asignado.</span>
-              ) : (
-                <span className="text-gris">
-                  Placa nueva. Para guardar también sus datos de contacto usa{' '}
-                  <Link to="/registrar/presencial" className="font-semibold text-tinta underline">
-                    Registrar cliente
-                  </Link>
-                  .
-                </span>
+          {/* 1. Cliente: buscar uno existente o escribir uno nuevo */}
+          {elegido ? (
+            <div className="flex items-center gap-3 rounded-md border border-ok/30 bg-ok-suave px-3 py-2.5">
+              <UserCheck className="h-4 w-4 shrink-0 text-ok" />
+              <div className="min-w-0 flex-1 text-sm">
+                <p className="truncate font-semibold">{nombreVisible(elegido) ?? 'Cliente sin nombre'}</p>
+                <p className="truncate text-xs text-gris">
+                  Cliente registrado
+                  {elegido.celular && <span className="num"> · {formatoCelular(elegido.celular)}</span>}
+                  {placasCliente.length > 0 && <span className="num"> · {placasCliente.join(', ')}</span>}
+                </p>
+              </div>
+              <button type="button" onClick={soltar} className="text-xs font-semibold text-gris hover:text-tinta">
+                Cambiar
+              </button>
+            </div>
+          ) : (
+            <div className="relative">
+              <Campo etiqueta="Buscar cliente existente" ayuda="Si es cliente nuevo, deja esto vacío y llena sus datos abajo.">
+                <div className="relative">
+                  <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gris-claro" />
+                  <Entrada value={busqueda} onChange={(e) => setBusqueda(e.target.value)} placeholder="Nombre, celular o placa" className="pl-9" />
+                </div>
+              </Campo>
+              {busqueda.trim().length >= 2 && (
+                <div className="absolute left-0 right-0 top-[68px] z-10 overflow-hidden rounded-md border border-linea bg-white shadow-modal">
+                  {coincidencias.length === 0 ? (
+                    <p className="px-3 py-2.5 text-sm text-gris">No está en la base. Llena sus datos abajo y se registrará solo.</p>
+                  ) : (
+                    <ul className="max-h-60 divide-y divide-linea overflow-y-auto">
+                      {coincidencias.map(({ cliente: c, placas }) => (
+                        <li key={c.id}>
+                          <button type="button" onClick={() => elegir(c)} className="block w-full px-3 py-2 text-left hover:bg-fondo">
+                            <p className="truncate text-sm font-semibold">{nombreVisible(c) ?? 'Sin nombre'}</p>
+                            <p className="truncate text-xs text-gris num">
+                              {[c.celular && formatoCelular(c.celular), placas.join(', ')].filter(Boolean).join(' · ') || 'Sin datos de contacto'}
+                            </p>
+                          </button>
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+                </div>
               )}
             </div>
           )}
-          <Campo etiqueta="Servicio" requerido>
-            <Selector value={servicio} onChange={(e) => setServicio(e.target.value)}>
-              <option value="">Elegir</option>
-              {listas.servicios.map((s) => (
-                <option key={s}>{s}</option>
-              ))}
-            </Selector>
-          </Campo>
-          <Campo etiqueta="Agendado por">
-            <Selector value={agendadoPor} onChange={(e) => setAgendadoPor(e.target.value)}>
-              {[...new Set([agendadoPor, ...listas.asesores])].filter(Boolean).map((a) => (
-                <option key={a}>{a}</option>
-              ))}
-            </Selector>
-          </Campo>
+
+          <div className="grid gap-4 sm:grid-cols-2">
+            <Campo etiqueta="Nombre del cliente" requerido={!elegido} className="sm:col-span-2">
+              <Entrada
+                value={nombre}
+                onChange={(e) => setNombre(e.target.value)}
+                placeholder={elegido ? 'Sin nombre registrado: escríbelo para completarlo' : 'Ej.: Juan Pérez'}
+              />
+            </Campo>
+            <Campo etiqueta="Celular" ayuda={!celEscrito ? 'Sin celular no se le puede recordar la cita.' : undefined}>
+              <Entrada
+                value={celular}
+                onChange={(e) => setCelular(e.target.value)}
+                inputMode="tel"
+                placeholder="987 654 321"
+                invalido={!!celEscrito && !celularValido(cel)}
+              />
+            </Campo>
+            <Campo etiqueta="Placa">
+              <Entrada
+                value={placa}
+                onChange={(e) => setPlaca(e.target.value.toUpperCase())}
+                placeholder="ABC123"
+                invalido={!!placa && !placaValida(p)}
+              />
+              {placasCliente.length > 1 && (
+                <div className="mt-1.5 flex flex-wrap gap-1">
+                  {placasCliente.map((x) => (
+                    <button
+                      key={x}
+                      type="button"
+                      onClick={() => setPlaca(x)}
+                      className={cx(
+                        'rounded border px-2 py-0.5 font-display text-xs font-semibold tracking-wide num',
+                        p === x ? 'border-carbon bg-carbon text-white' : 'border-linea-fuerte text-gris hover:text-tinta',
+                      )}
+                    >
+                      {x}
+                    </button>
+                  ))}
+                </div>
+              )}
+            </Campo>
+          </div>
+
+          {yaExiste && (
+            <div className="flex items-center gap-3 rounded-md bg-info-suave px-3 py-2.5 text-sm">
+              <UserCheck className="h-4 w-4 shrink-0 text-info" />
+              <p className="min-w-0 flex-1">
+                Ya está en la base: <span className="font-semibold">{nombreVisible(yaExiste) ?? 'cliente sin nombre'}</span>
+                {yaExiste.celular && <span className="num text-gris"> · {formatoCelular(yaExiste.celular)}</span>}
+              </p>
+              <button type="button" onClick={() => elegir(yaExiste)} className="text-[13px] font-semibold text-info hover:underline">
+                Usar este
+              </button>
+            </div>
+          )}
+
+          {otraCita && (
+            <div className="flex items-start gap-2 rounded-md bg-aviso-suave px-3 py-2.5 text-[13px] text-aviso">
+              <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />
+              <p>
+                Ya tiene otra cita pendiente: <span className="font-semibold first-letter:uppercase">{fechaTexto(otraCita.fecha)}</span> a las{' '}
+                {otraCita.hora} ({otraCita.servicio}). Si es la misma, mejor reprográmala en vez de crear otra.
+              </p>
+            </div>
+          )}
+
+          {!elegido && (
+            <Campo etiqueta="¿Por dónde pidió la cita?">
+              <SelectorCanal valor={canal} onCambio={setCanal} />
+            </Campo>
+          )}
+
+          <div className="grid gap-4 sm:grid-cols-2">
+            <Campo etiqueta="Servicio" requerido>
+              <Selector value={servicio} onChange={(e) => setServicio(e.target.value)}>
+                <option value="">Elegir</option>
+                {listas.servicios.map((s) => (
+                  <option key={s}>{s}</option>
+                ))}
+              </Selector>
+            </Campo>
+            <Campo etiqueta="Agendado por">
+              <Selector value={agendadoPor} onChange={(e) => setAgendadoPor(e.target.value)}>
+                {[...new Set([agendadoPor, ...listas.asesores])].filter(Boolean).map((a) => (
+                  <option key={a}>{a}</option>
+                ))}
+              </Selector>
+            </Campo>
+          </div>
           <Campo etiqueta="Notas">
             <AreaTexto value={notas} onChange={(e) => setNotas(e.target.value)} placeholder="Ej.: el carro tarda en pasar a gas" className="min-h-[64px]" />
           </Campo>
@@ -586,8 +1004,76 @@ function NuevaCita({ hueco, onCerrar }: { hueco: Hueco; onCerrar: () => void }) 
   );
 }
 
-function DetalleCita({ cita, onCerrar }: { cita: Cita; onCerrar: () => void }) {
+/** Completa los datos de contacto de una cita que se agendó solo con la placa (o sin celular). */
+function CompletarCliente({ cita, cliente }: { cita: Cita; cliente?: Cliente }) {
+  const { editar } = useDatos();
+  const { registrar, buscarExistente } = useAcciones();
+  const avisar = useAvisos();
+  const [nombre, setNombre] = useState(nombreVisible(cliente) ?? '');
+  const [celular, setCelular] = useState('');
+  const [canal, setCanal] = useState<Canal>('whatsapp');
+  const [error, setError] = useState('');
+  const [guardando, setGuardando] = useState(false);
+  const cel = normalizarCelular(celular);
+
+  const guardar = async () => {
+    setError('');
+    if (!celularValido(cel)) return setError('El celular debe tener 9 dígitos y empezar en 9.');
+    if (!cliente && !nombre.trim()) return setError('Escribe el nombre.');
+    setGuardando(true);
+    try {
+      if (cliente) {
+        const patch: Partial<Cliente> = { celular: cel };
+        if (nombre.trim() && esNombreRelleno(cliente.nombre)) patch.nombre = nombre.trim();
+        await editar('clientes', cliente.id, patch);
+      } else {
+        const previo = buscarExistente(cel, cita.placa || undefined).cliente;
+        const r = await registrar({
+          nombre: nombre.trim(),
+          celular: cel,
+          canal,
+          placa: cita.placa || undefined,
+          interes: cita.servicio,
+          estado: 'cita',
+          comentario: `Datos completados desde la cita del ${fechaTexto(cita.fecha)}.`,
+        });
+        if (previo && esNombreRelleno(previo.nombre)) await editar('clientes', r.clienteId, { nombre: nombre.trim() });
+        await editar('citas', cita.id, { clienteId: r.clienteId });
+      }
+      avisar('Datos del cliente guardados.');
+    } finally {
+      setGuardando(false);
+    }
+  };
+
+  return (
+    <div className="mt-5 rounded-md border border-aviso/30 bg-aviso-suave/60 p-3">
+      <p className="mb-2.5 flex items-center gap-1.5 text-[13px] font-semibold text-aviso">
+        <Phone className="h-3.5 w-3.5" /> {cliente ? 'Falta el celular para poder recordarle' : 'Esta cita no tiene cliente: completa sus datos'}
+      </p>
+      <div className="grid gap-2 sm:grid-cols-[1fr_1fr_auto] sm:items-end">
+        {(!cliente || esNombreRelleno(cliente.nombre)) && (
+          <Entrada value={nombre} onChange={(e) => setNombre(e.target.value)} placeholder="Nombre" className="h-9 bg-white" />
+        )}
+        <Entrada value={celular} onChange={(e) => setCelular(e.target.value)} placeholder="Celular" inputMode="tel" className="h-9 bg-white" />
+        <Boton tam="sm" onClick={guardar} disabled={guardando}>
+          Guardar
+        </Boton>
+      </div>
+      {!cliente && (
+        <div className="mt-2.5">
+          <SelectorCanal valor={canal} onCambio={setCanal} />
+        </div>
+      )}
+      {error && <p className="mt-2 text-xs text-rojo-osc">{error}</p>}
+    </div>
+  );
+}
+
+function DetalleCita({ cita: inicial, onCerrar }: { cita: Cita; onCerrar: () => void }) {
   const { editar, eliminar, datos, listas } = useDatos();
+  // Siempre la versión más reciente (por si se completan datos con la ventana abierta).
+  const cita = datos.citas.find((c) => c.id === inicial.id) ?? inicial;
   const avisar = useAvisos();
   const { cliente, vehiculo } = useClienteDeCita()(cita);
   const registrarIngreso = useIngreso();
@@ -663,7 +1149,7 @@ function DetalleCita({ cita, onCerrar }: { cita: Cita; onCerrar: () => void }) {
           <dd className="text-sm font-medium">
             {cliente ? (
               <Link to={`/clientes/${cliente.id}`} className="underline underline-offset-2">
-                {cliente.nombre}
+                {nombreVisible(cliente) ?? 'Sin nombre'}
               </Link>
             ) : (
               '—'
@@ -694,6 +1180,8 @@ function DetalleCita({ cita, onCerrar }: { cita: Cita; onCerrar: () => void }) {
           </div>
         )}
       </dl>
+
+      {cita.estado === 'agendada' && !cliente?.celular && <CompletarCliente key={cliente?.id ?? 'nuevo'} cita={cita} cliente={cliente} />}
 
       {cita.estado === 'agendada' && !reprog && (
         <div className="mt-6 space-y-3 border-t border-linea pt-5">

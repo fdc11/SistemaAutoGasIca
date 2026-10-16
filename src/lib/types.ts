@@ -81,6 +81,8 @@ export interface Cita extends Base {
   agendadoPor: string;
   /** Fecha y hora en que se envió el recordatorio por WhatsApp. */
   recordadoEn?: string;
+  /** Fecha y hora en que se envió la confirmación de la cita recién agendada. */
+  confirmadoEn?: string;
 }
 
 export interface Bloqueo extends Base {
@@ -124,6 +126,31 @@ export interface Empresa extends Base {
   telefono?: string;
   condiciones?: string;
   activa: boolean;
+}
+
+export type EstadoCobro = 'pendiente' | 'cobrado';
+
+/** Atención a un vehículo de empresa con convenio (una fila del Excel «CONVENIOS CAMBIO DE ACEITE»). */
+export interface AtencionConvenio extends Base {
+  fecha: string; // YYYY-MM-DD
+  empresaId: string;
+  clienteId?: string;
+  vehiculoId?: string;
+  placa: string;
+  nombre: string; // como se registró ese día (por si luego cambia la ficha)
+  celular: string;
+  servicio: string; // lista controlada
+  detalle?: string; // «LIQUI MOLY 5W30», «REGULACION DE GAS»…
+  marca?: string;
+  modelo?: string;
+  filtroAire?: string;
+  filtroAceite?: string;
+  kmActual?: number;
+  monto?: number;
+  cobro: EstadoCobro;
+  cobradoEn?: string;
+  notas?: string;
+  servicioAceiteId?: string; // si fue cambio de aceite, también queda en Cambio de aceite
 }
 
 export interface Filtro extends Base {
@@ -193,6 +220,7 @@ export interface Colecciones {
   serviciosAceite: ServicioAceite;
   empresas: Empresa;
   filtros: Filtro;
+  atenciones: AtencionConvenio;
   productos: Producto;
   movimientos: Movimiento;
   importaciones: Importacion;
@@ -211,6 +239,7 @@ export const COLECCIONES: NombreColeccion[] = [
   'serviciosAceite',
   'empresas',
   'filtros',
+  'atenciones',
   'productos',
   'movimientos',
   'importaciones',

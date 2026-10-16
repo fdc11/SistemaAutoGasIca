@@ -32,6 +32,8 @@ export function revisar(propuestas: Propuesta[], datos: Datos): Revision[] {
   const bloqueos = new Set(activos(datos.bloqueos).map((b) => `${b.fecha}|${b.hora}|${b.area}`));
   const refri = activos(datos.productos).find((p) => p.categoria === 'refrigerante');
   const movs = new Set(activos(datos.movimientos).filter((m) => m.productoId === refri?.id).map((m) => `${m.fecha}|${m.referencia}|${m.cantidad}`));
+  const atenciones = new Set(activos(datos.atenciones).map((a) => `${a.placa}|${a.fecha}`));
+  const vistosAt = new Set<string>();
   const vistos = new Map<string, number>();
   const vistosServ = new Set<string>();
 
@@ -42,6 +44,12 @@ export function revisar(propuestas: Propuesta[], datos: Datos): Revision[] {
       if (servicios.has(k)) return { p, estado: 'repetido', detalle: 'Este servicio ya está en el sistema', importar: false };
       if (vistosServ.has(k)) return { p, estado: 'repetido', detalle: 'Fila repetida en el mismo archivo', importar: false };
       vistosServ.add(k);
+    }
+    if (p.atencion && p.vehiculo) {
+      const k = `${p.vehiculo.placa}|${p.atencion.fecha}`;
+      if (atenciones.has(k)) return { p, estado: 'repetido', detalle: 'Esta atención de convenio ya está en el sistema', importar: false };
+      if (vistosAt.has(k)) return { p, estado: 'repetido', detalle: 'Fila repetida en el mismo archivo', importar: false };
+      vistosAt.add(k);
     }
     if (p.cita && p.vehiculo && citas.has(`${p.vehiculo.placa}|${p.cita.fecha}|${p.cita.hora}|${p.cita.area}`))
       return { p, estado: 'repetido', detalle: 'Esta cita ya está en la agenda', importar: false };
@@ -188,6 +196,21 @@ export function integrar(revisiones: Revision[], datos: Datos, importacionId: st
       if (creado) creado.empresaId = empresaId;
       else parches.push({ col: 'clientes', id: clienteId, patch: { empresaId } });
       empresaDe.set(clienteId, empresaId);
+    }
+    if (p.atencion && empresaId) {
+      add('atenciones', {
+        id: uid(),
+        empresaId,
+        clienteId,
+        vehiculoId,
+        placa: p.vehiculo?.placa ?? '',
+        nombre: p.cliente?.nombre ?? '',
+        celular: p.cliente?.celular ?? '',
+        marca: p.vehiculo?.marca,
+        modelo: [p.vehiculo?.modelo, p.vehiculo?.anio].filter(Boolean).join(' ') || undefined,
+        cobro: 'pendiente',
+        ...p.atencion,
+      });
     }
     if (p.servicio) add('serviciosAceite', { id: uid(), placa: p.vehiculo?.placa ?? '', vehiculoId, clienteId, ...p.servicio });
     if (p.cita) add('citas', { id: uid(), placa: p.vehiculo?.placa ?? '', clienteId, ...p.cita });

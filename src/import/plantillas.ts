@@ -45,6 +45,8 @@ export interface Propuesta {
   interaccion?: { fecha: string; tipo: 'llamada' | 'whatsapp' | 'presencial' | 'nota'; comentario: string; resultado?: string };
   servicio?: { fecha: string; detalle: string; kmActual?: number; intervaloKm?: number; kmProximo?: number; monto: number; celular?: string; respuesta?: string; sede?: string };
   filtro?: { marca: string; modelo: string; filtroAire?: string; filtroAceite?: string };
+  /** Atención de convenio (solo la hoja de convenios). La empresa va en `empresa`. */
+  atencion?: { fecha: string; servicio: string; detalle?: string; filtroAire?: string; filtroAceite?: string };
   movimiento?: { producto: string; cantidad: number; referencia?: string; tipoVenta?: string; fecha: string; nota?: string };
   cita?: { fecha: string; hora: string; area: Area; servicio: string; agendadoPor: string; notas?: string; estado: 'agendada' | 'asistio' };
   bloqueo?: { fecha: string; hora: string; area: Area; motivo: string };
@@ -433,8 +435,18 @@ const convenios: PlantillaTabla = {
         vehiculo?.marca && vehiculo?.modelo && (aire || aceiteF)
           ? { marca: vehiculo.marca, modelo: vehiculo.modelo, filtroAire: aire || undefined, filtroAceite: aceiteF || undefined }
           : undefined,
-      interaccion: { fecha: (f.valida ? f.iso : hoy()) + 'T12:00:00.000Z', tipo: 'presencial', comentario: `Convenio: ${texto(v('interes')) || 'servicio'}` },
-      avisos,
+      interaccion: { fecha: (f.valida ? f.iso : hoy()) + 'T12:00:00.000Z', tipo: 'presencial', comentario: `Convenio${empresa ? ' ' + empresa : ''}: ${texto(v('interes')) || 'servicio'}` },
+      atencion:
+        empresa && vehiculo
+          ? {
+              fecha: f.valida ? f.iso : hoy(),
+              servicio: leerServicio(v('interes')) ?? 'Otro',
+              detalle: texto(v('interes')) || undefined,
+              filtroAire: aire || undefined,
+              filtroAceite: aceiteF || undefined,
+            }
+          : undefined,
+      avisos: f.valida || !empresa ? avisos : [...avisos, 'Sin fecha: se usó la de hoy; corrígela luego en Convenios'],
       resumen: [nombre || 'Sin nombre', empresa, vehiculo?.placa].filter(Boolean).join(' · '),
     };
   },

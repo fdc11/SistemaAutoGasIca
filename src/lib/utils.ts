@@ -120,3 +120,7 @@ export function agruparPor<T, K extends string | number>(xs: T[], f: (x: T) => K
   }
   return m;
 }
+
+/** Nombres de relleno que dejó la importación («Sin nombre», «Cliente Y2B688»). */
+export const esNombreRelleno = (n?: string) => !n?.trim() || /^sin nombre$/i.test(n.trim()) || /^cliente\s+[a-z0-9]{6}$/i.test(n.trim());
+export const nombreReal = (n?: string) => (esNombreRelleno(n) ? '' : n!.trim());
