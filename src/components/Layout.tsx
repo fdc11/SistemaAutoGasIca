@@ -24,7 +24,7 @@ import { cx } from '../lib/utils';
 import logoClaro from '../assets/logo-autogas.webp';
 import logoOscuro from '../assets/logo-autogas-oscuro.webp';
 
-export function Logo({ claro = true }: { claro?: boolean }) {
+export function Logo({ claro = true, className }: { claro?: boolean; className?: string }) {
   return (
     <img
       src={claro ? logoClaro : logoOscuro}
@@ -32,7 +32,7 @@ export function Logo({ claro = true }: { claro?: boolean }) {
       width={393}
       height={92}
       draggable={false}
-      className="h-9 w-auto select-none"
+      className={cx('h-9 w-auto max-w-full shrink-0 select-none self-start object-contain', className)}
     />
   );
 }
