@@ -1,6 +1,7 @@
 import { useMemo, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import { MessageCircle, Pencil, Trash2, Phone, Plus, StickyNote, ArrowRightLeft, Store, Car } from 'lucide-react';
+import { SelectorAreas } from '../components/SelectorAreas';
 import { useDatos, useActivos } from '../data/store';
 import { useAcciones } from '../data/acciones';
 import { CANALES, ESTADOS, ESTADOS_CITA, estadoInfo, nombreArea, nombreCanal } from '../lib/catalogos';
@@ -30,8 +31,7 @@ import {
   Panel,
   Selector,
   Vacio,
-  useAvisos,
-} from '../components/ui';
+  useAvisos, Grupo } from '../components/ui';
 
 const ICONO_TIPO: Record<TipoInteraccion, JSX.Element> = {
   llamada: <Phone className="h-3.5 w-3.5" />,
@@ -178,6 +178,7 @@ export default function FichaCliente() {
                 {nombreCanal(cliente.canal)}
                 {cliente.subcanal && <span className="text-gris"> · {cliente.subcanal}</span>}
               </Dato>
+              <Dato etiqueta="Área del taller">{cliente.areas?.length ? cliente.areas.join(' · ') : <span className="text-aviso">Sin área: edítalo para segmentar</span>}</Dato>
               <Dato etiqueta="Empresa de convenio">{empresa?.nombre}</Dato>
               <Dato etiqueta="Servicio de interés">
                 {cliente.interes}
@@ -414,6 +415,7 @@ function EditarCliente({ cliente, onCerrar }: { cliente: Cliente; onCerrar: () =
       interes: f.interes,
       probabilidad: f.probabilidad,
       proximoContacto: f.proximoContacto,
+      areas: f.areas ?? [],
     });
     avisar('Datos actualizados.');
     onCerrar();
@@ -447,6 +449,9 @@ function EditarCliente({ cliente, onCerrar }: { cliente: Cliente; onCerrar: () =
             ))}
           </Selector>
         </Campo>
+        <Grupo etiqueta="Área del taller" className="sm:col-span-2">
+          <SelectorAreas valor={f.areas ?? []} onCambio={(v) => setF({ ...f, areas: v })} />
+        </Grupo>
         <Campo etiqueta="Canal de origen">
           <Selector value={f.canal} onChange={(e) => setF({ ...f, canal: e.target.value as any })}>
             {CANALES.map((c) => (

@@ -127,6 +127,20 @@ export function Campo({
   );
 }
 
+/** Como Campo, pero sin <label>: para grupos de botones (un label activaría el primer botón al hacer clic en el título). */
+export function Grupo({ etiqueta, ayuda, error, children, className, requerido }: { etiqueta: string; ayuda?: string; error?: string; children: ReactNode; className?: string; requerido?: boolean }) {
+  return (
+    <div role="group" aria-label={etiqueta} className={cx('block', className)}>
+      <span className="mb-1.5 block text-[13px] font-medium text-tinta">
+        {etiqueta}
+        {requerido && <span className="ml-0.5 text-rojo">*</span>}
+      </span>
+      {children}
+      {error ? <span className="mt-1 block text-xs text-rojo">{error}</span> : ayuda ? <span className="mt-1 block text-xs text-gris">{ayuda}</span> : null}
+    </div>
+  );
+}
+
 export function Buscador({
   valor,
   onCambio,

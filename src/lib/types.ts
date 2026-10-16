@@ -44,6 +44,8 @@ export interface Cliente extends Base {
   proximoContacto?: string; // YYYY-MM-DD
   fechaContacto: string; // YYYY-MM-DD primer contacto
   notas?: string;
+  /** Áreas del taller donde se le atendió: Conversiones, Mecánica, Gas… (para segmentar). */
+  areas?: string[];
 }
 
 export interface Vehiculo extends Base {
@@ -79,6 +81,9 @@ export interface Cita extends Base {
   notas?: string;
   estado: EstadoCita;
   agendadoPor: string;
+  /** Copia del nombre y celular del cliente: la agenda sigue funcionando aunque se borre su ficha. */
+  nombreCliente?: string;
+  celularCliente?: string;
   /** Fecha y hora en que se envió el recordatorio por WhatsApp. */
   recordadoEn?: string;
   /** Fecha y hora en que se envió la confirmación de la cita recién agendada. */
@@ -126,6 +131,27 @@ export interface Empresa extends Base {
   telefono?: string;
   condiciones?: string;
   activa: boolean;
+}
+
+export type EstadoNumero = 'nuevo' | 'contactado' | 'cotizacion' | 'cita' | 'concretado' | 'sin_respuesta' | 'perdido';
+
+/** Número nuevo que escribió o llamó al taller (registro de tráfico de ingresos, como «FORMATO CONTROL NUMEROS»). */
+export interface NumeroNuevo extends Base {
+  fecha: string; // fecha de contacto YYYY-MM-DD
+  celular: string;
+  nombre?: string;
+  tipoContacto: string; // Facebook Ads, WhatsApp, Orgánico… (lista editable)
+  interes?: string; // lista de servicios
+  interesDetalle?: string;
+  area?: string; // Conversiones, Mecánica, Gas
+  placa?: string;
+  marca?: string;
+  modelo?: string;
+  fechaCita?: string;
+  ultimoContacto?: string;
+  comentarios?: string;
+  estado: EstadoNumero;
+  clienteId?: string; // cuando se pasó a la Base de clientes
 }
 
 export type EstadoCobro = 'pendiente' | 'cobrado';
@@ -208,6 +234,8 @@ export interface Listas extends Base {
   tecnicos: string[];
   asesores: string[];
   ciudades: string[];
+  areasCliente: string[];
+  tiposContacto: string[];
 }
 
 export interface Colecciones {
@@ -221,6 +249,7 @@ export interface Colecciones {
   empresas: Empresa;
   filtros: Filtro;
   atenciones: AtencionConvenio;
+  numeros: NumeroNuevo;
   productos: Producto;
   movimientos: Movimiento;
   importaciones: Importacion;
@@ -240,6 +269,7 @@ export const COLECCIONES: NombreColeccion[] = [
   'empresas',
   'filtros',
   'atenciones',
+  'numeros',
   'productos',
   'movimientos',
   'importaciones',

@@ -6,8 +6,9 @@ import { useAcciones } from '../data/acciones';
 import { AREAS, CANALES, HORAS_SABADO, HORAS_SEMANA, estadoInfo, nombreCanal } from '../lib/catalogos';
 import type { Area, Canal, EstadoCliente } from '../lib/types';
 import { celularValido, cx, formatoCelular, hoyISO, normalizarCelular, normalizarPlaca, placaValida, plano } from '../lib/utils';
-import { AreaTexto, Boton, Campo, Encabezado, Entrada, Etiqueta, Panel, Selector, useAvisos } from '../components/ui';
+import { AreaTexto, Boton, Campo, Grupo, Encabezado, Entrada, Etiqueta, Panel, Selector, useAvisos } from '../components/ui';
 import { parseISO, getDay } from 'date-fns';
+import { SelectorAreas } from '../components/SelectorAreas';
 
 const ICONOS: Record<Canal, JSX.Element> = {
   presencial: <Store />,
@@ -37,6 +38,7 @@ const inicial = {
   proximoContacto: '',
   comentario: '',
   agendar: true,
+  areas: [] as string[],
   area: 'gas' as Area,
   fechaCita: hoyISO(),
   horaCita: '',
@@ -81,6 +83,7 @@ export default function Registrar() {
   const validar = () => {
     const e: Record<string, string> = {};
     if (!f.nombre.trim()) e.nombre = 'Escribe el nombre del cliente.';
+    if (!f.areas.length) e.areas = 'Elige en qué área se atiende.';
     if (!f.sinCelular && !celularValido(normalizarCelular(f.celular))) e.celular = 'El celular debe tener 9 dígitos y empezar en 9.';
     if (f.placa && !placaValida(normalizarPlaca(f.placa))) e.placa = 'La placa debe tener 6 letras o números.';
     if (canal === 'publicidad' && !f.subcanal) e.subcanal = 'Elige de qué anuncio vino.';
@@ -120,6 +123,7 @@ export default function Registrar() {
         probabilidad: f.probabilidad || undefined,
         estado: estadoInicial(),
         proximoContacto: f.proximoContacto || undefined,
+        areas: f.areas,
         placa: f.placa,
         marca: f.marca,
         modelo: f.modelo,
@@ -135,6 +139,8 @@ export default function Registrar() {
           area: f.area,
           placa: normalizarPlaca(f.placa),
           clienteId: r.clienteId,
+          nombreCliente: f.nombre.trim() || undefined,
+          celularCliente: normalizarCelular(f.celular) || undefined,
           servicio: f.interes,
           estado: 'agendada',
           agendadoPor: autor,
@@ -143,7 +149,7 @@ export default function Registrar() {
       }
       avisar(r.nuevo ? `${f.nombre.trim()} quedó registrado.` : `Se agregó el contacto a la ficha de ${existente?.cliente?.nombre ?? f.nombre}.`);
       setUltimo({ id: r.clienteId, nombre: f.nombre.trim() });
-      setF({ ...inicial, ciudad: f.ciudad, area: f.area, fechaCita: f.fechaCita });
+      setF({ ...inicial, ciudad: f.ciudad, area: f.area, fechaCita: f.fechaCita, areas: f.areas });
       setErrores({});
     } catch (err: any) {
       avisar('No se pudo guardar. Revisa tu conexión e inténtalo de nuevo.', 'error');
@@ -232,6 +238,9 @@ export default function Registrar() {
                 />
                 El cliente no quiso dar su número
               </label>
+              <Grupo etiqueta="Área del taller" requerido error={errores.areas} className="sm:col-span-2" ayuda={errores.areas ? undefined : 'Puedes marcar más de una.'}>
+                <SelectorAreas valor={f.areas} onCambio={(v) => set('areas', v)} invalido={!!errores.areas} />
+              </Grupo>
             </div>
           </Panel>
 

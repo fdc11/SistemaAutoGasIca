@@ -8,6 +8,7 @@ import Login from './pages/Login';
 import Inicio from './pages/Inicio';
 import Registrar from './pages/Registrar';
 import Clientes from './pages/Clientes';
+import Numeros from './pages/Numeros';
 import FichaCliente from './pages/FichaCliente';
 import Agenda from './pages/Agenda';
 import Taller from './pages/Taller';
@@ -32,6 +33,7 @@ function Rutas() {
           <Route path="registrar/:canal" element={<Registrar />} />
           <Route path="clientes" element={<Clientes />} />
           <Route path="clientes/:id" element={<FichaCliente />} />
+          <Route path="numeros" element={<Numeros />} />
           <Route path="agenda" element={<Agenda />} />
           <Route path="taller" element={<Taller />} />
           <Route path="aceite" element={<Aceite />} />

@@ -23,6 +23,7 @@ export interface DatosRegistro {
   comentario?: string;
   tipoInteraccion?: 'llamada' | 'whatsapp' | 'presencial' | 'nota';
   resultado?: string;
+  areas?: string[];
 }
 
 export function useAcciones() {
@@ -60,6 +61,7 @@ export function useAcciones() {
         estado: d.estado ?? 'nuevo',
         proximoContacto: d.proximoContacto,
         fechaContacto: hoyISO(),
+        areas: d.areas?.length ? d.areas : undefined,
       });
     } else {
       const patch: Partial<Cliente> = {};
@@ -67,6 +69,8 @@ export function useAcciones() {
       if (d.proximoContacto) patch.proximoContacto = d.proximoContacto;
       if (d.estado && d.estado !== cliente!.estado) patch.estado = d.estado;
       if (!cliente!.celular && celular) patch.celular = celular;
+      const nuevas = (d.areas ?? []).filter((a) => !(cliente!.areas ?? []).includes(a));
+      if (nuevas.length) patch.areas = [...(cliente!.areas ?? []), ...nuevas];
       if (Object.keys(patch).length) await editar('clientes', clienteId, patch);
     }
 

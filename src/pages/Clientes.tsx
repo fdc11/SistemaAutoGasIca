@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Download, MessageCircle, UserPlus, Users } from 'lucide-react';
-import { useActivos } from '../data/store';
+import { useActivos, useDatos } from '../data/store';
 import { CANALES, ESTADOS, estadoInfo, nombreCanal } from '../lib/catalogos';
 import type { EstadoCliente } from '../lib/types';
 import { cx, enlaceWhatsApp, fechaCorta, formatoCelular, hoyISO, plano } from '../lib/utils';
@@ -14,9 +14,11 @@ export default function Clientes() {
   const vehiculos = useActivos('vehiculos');
   const empresas = useActivos('empresas');
   const navigate = useNavigate();
+  const { listas } = useDatos();
   const [q, setQ] = useState('');
   const [estado, setEstado] = useState<'todos' | EstadoCliente>('todos');
   const [canal, setCanal] = useState('');
+  const [area, setArea] = useState('');
   const [asesor, setAsesor] = useState('');
   const [desde, setDesde] = useState('');
   const [hasta, setHasta] = useState('');
@@ -35,6 +37,7 @@ export default function Clientes() {
     const t = plano(q).replace(/\s+/g, '');
     return clientes.filter((c) => {
       if (canal && c.canal !== canal) return false;
+      if (area === '—' ? c.areas?.length : area && !(c.areas ?? []).includes(area)) return false;
       if (asesor && c.creadoPor !== asesor) return false;
       if (desde && c.fechaContacto < desde) return false;
       if (hasta && c.fechaContacto > hasta) return false;
@@ -45,7 +48,7 @@ export default function Clientes() {
       }
       return true;
     });
-  }, [clientes, q, canal, asesor, desde, hasta, placasDe]);
+  }, [clientes, q, canal, area, asesor, desde, hasta, placasDe]);
 
   const conteo = useMemo(() => {
     const m: Record<string, number> = { todos: base.length };
@@ -65,7 +68,7 @@ export default function Clientes() {
   }, [base, estado, orden]);
 
   const visibles = lista.slice((pagina - 1) * POR_PAGINA, pagina * POR_PAGINA);
-  const filtrando = q || canal || asesor || desde || hasta;
+  const filtrando = q || canal || area || asesor || desde || hasta;
 
   const exportar = async () => {
     const XLSX = await import('xlsx');
@@ -73,6 +76,7 @@ export default function Clientes() {
       Nombre: c.nombre,
       Celular: c.celular,
       Ciudad: c.ciudad ?? '',
+      Área: (c.areas ?? []).join(', '),
       Canal: nombreCanal(c.canal),
       Anuncio: c.subcanal ?? '',
       Empresa: empresas.find((e) => e.id === c.empresaId)?.nombre ?? '',
@@ -113,6 +117,26 @@ export default function Clientes() {
       />
 
       <Panel sinRelleno>
+        <div className="flex flex-wrap items-center gap-1.5 border-b border-linea px-4 py-3">
+          <span className="mr-1 text-[13px] font-medium text-gris">Área:</span>
+          {[
+            { id: '', nombre: 'Todas', n: clientes.length },
+            ...listas.areasCliente.map((a) => ({ id: a, nombre: a, n: clientes.filter((c) => c.areas?.includes(a)).length })),
+            { id: '—', nombre: 'Sin área', n: clientes.filter((c) => !c.areas?.length).length },
+          ].map((o) => (
+            <button
+              key={o.id || 'todas'}
+              type="button"
+              onClick={() => { setArea(o.id); setPagina(1); }}
+              className={cx(
+                'rounded-full border px-3 py-1 text-[13px] font-semibold',
+                area === o.id ? 'border-carbon bg-carbon text-white' : 'border-linea-fuerte bg-white text-gris hover:text-tinta',
+              )}
+            >
+              {o.nombre} <span className={cx('num', area === o.id ? 'text-white/70' : 'text-gris-claro')}>{o.n}</span>
+            </button>
+          ))}
+        </div>
         <div className="grid gap-3 border-b border-linea p-4 md:grid-cols-[minmax(0,2fr)_repeat(4,minmax(0,1fr))]">
           <Buscador valor={q} onCambio={(v) => { setQ(v); setPagina(1); }} placeholder="Nombre, celular o placa" />
           <Selector value={canal} onChange={(e) => { setCanal(e.target.value); setPagina(1); }} aria-label="Canal">
@@ -179,6 +203,13 @@ export default function Clientes() {
                       <Td>
                         <p className="font-semibold">{c.nombre || 'Sin nombre'}</p>
                         <p className="text-[13px] text-gris num">{formatoCelular(c.celular)}</p>
+                        {!!c.areas?.length && (
+                          <p className="mt-1 flex flex-wrap gap-1">
+                            {c.areas.map((a) => (
+                              <span key={a} className="rounded bg-fondo px-1.5 py-0.5 text-[11px] font-semibold text-gris">{a}</span>
+                            ))}
+                          </p>
+                        )}
                       </Td>
                       <Td>
                         {nombreCanal(c.canal)}

@@ -5,7 +5,7 @@ import { useAuth } from '../data/auth';
 import { borrarDatosDemo } from '../data/backend';
 import { sembrarCatalogo } from '../data/demo';
 import { COLECCIONES, type Listas, type NombreColeccion } from '../lib/types';
-import { fechaHora, hoyISO } from '../lib/utils';
+import { esNombreRelleno, fechaHora, hoyISO } from '../lib/utils';
 import { Boton, BotonIcono, Confirmar, Encabezado, Entrada, Etiqueta, Panel, Pestanas, Tabla, Td, Th, Vacio, useAvisos } from '../components/ui';
 
 const NOMBRES: Record<NombreColeccion, string> = {
@@ -19,13 +19,16 @@ const NOMBRES: Record<NombreColeccion, string> = {
   empresas: 'Empresa',
   filtros: 'Filtro',
   atenciones: 'Atención de convenio',
+  numeros: 'Número nuevo',
   productos: 'Producto',
   movimientos: 'Movimiento',
   importaciones: 'Importación',
   ajustes: 'Ajustes',
 };
 
-const LISTAS: { clave: keyof Pick<Listas, 'servicios' | 'subcanales' | 'motivosPerdida' | 'tecnicos' | 'ciudades' | 'asesores'>; titulo: string; ayuda: string }[] = [
+const LISTAS: { clave: keyof Pick<Listas, 'servicios' | 'subcanales' | 'motivosPerdida' | 'tecnicos' | 'ciudades' | 'asesores' | 'areasCliente' | 'tiposContacto'>; titulo: string; ayuda: string }[] = [
+  { clave: 'tiposContacto', titulo: 'Tipos de contacto (Números nuevos)', ayuda: 'Por dónde llegó cada número nuevo. Se usan en el análisis de tráfico.' },
+  { clave: 'areasCliente', titulo: 'Áreas del taller', ayuda: 'Dónde se atendió al cliente. Se elige al registrarlo y sirve para segmentar la base.' },
   { clave: 'asesores', titulo: 'Personal que atiende', ayuda: 'Nombres que aparecen en «Atiende» y en «Agendado por».' },
   { clave: 'servicios', titulo: 'Servicios', ayuda: 'Aparecen al registrar clientes, citas e ingresos.' },
   { clave: 'tecnicos', titulo: 'Técnicos', ayuda: 'Se asignan al ingreso del vehículo al taller.' },
@@ -279,6 +282,7 @@ export default function Ajustes() {
               </Boton>
             )}
           </Panel>
+          <VaciarClientes onRespaldo={respaldo} />
           <Panel titulo="Registros">
             <dl className="grid grid-cols-2 gap-x-6 gap-y-2 text-sm">
               {(['clientes', 'vehiculos', 'citas', 'serviciosAceite', 'productos', 'movimientos'] as NombreColeccion[]).map((c) => (
@@ -341,6 +345,92 @@ function EditorLista({ titulo, ayuda, valores, onGuardar }: { titulo: string; ay
           Agregar
         </Boton>
       </form>
+    </Panel>
+  );
+}
+
+/** Borra clientes, vehículos e historial. Las citas de la agenda se conservan con una copia del nombre y celular. */
+function VaciarClientes({ onRespaldo }: { onRespaldo: () => Promise<void> }) {
+  const { datos, crearVarios, borrarDefinitivo } = useDatos();
+  const avisar = useAvisos();
+  const [respaldado, setRespaldado] = useState(false);
+  const [texto, setTexto] = useState('');
+  const [paso, setPaso] = useState('');
+  const n = { clientes: datos.clientes.length, vehiculos: datos.vehiculos.length, interacciones: datos.interacciones.length };
+  const total = n.clientes + n.vehiculos + n.interacciones;
+
+  const vaciar = async () => {
+    try {
+      // 1. Copia nombre y celular dentro de cada cita para que la agenda siga igual
+      setPaso('Protegiendo las citas de la agenda…');
+      const porId = new Map(datos.clientes.map((c) => [c.id, c]));
+      const duenoDe = new Map(datos.vehiculos.filter((v) => v.clienteId).map((v) => [v.placa, v.clienteId!]));
+      const citas = datos.citas.map((c) => {
+        const cl = porId.get(c.clienteId ?? '') ?? porId.get(duenoDe.get(c.placa) ?? '');
+        const nombre = c.nombreCliente || (cl && !esNombreRelleno(cl.nombre) ? cl.nombre : undefined);
+        const celular = c.celularCliente || cl?.celular || undefined;
+        return { ...c, clienteId: undefined, nombreCliente: nombre, celularCliente: celular };
+      });
+      if (citas.length) await crearVarios('citas', citas as any);
+      // 2. Borra historial, vehículos y clientes (también los que estaban en la papelera)
+      setPaso('Borrando historial…');
+      await borrarDefinitivo('interacciones', datos.interacciones.map((x) => x.id));
+      setPaso('Borrando vehículos…');
+      await borrarDefinitivo('vehiculos', datos.vehiculos.map((x) => x.id));
+      setPaso('Borrando clientes…');
+      await borrarDefinitivo('clientes', datos.clientes.map((x) => x.id));
+      avisar(`Base de clientes vaciada. La agenda conserva sus ${citas.length} citas.`);
+      setTexto('');
+      setRespaldado(false);
+    } catch (e) {
+      console.error(e);
+      avisar('No se pudo terminar. Revisa la conexión y vuelve a intentarlo: lo que ya se borró no se repite.', 'error');
+    } finally {
+      setPaso('');
+    }
+  };
+
+  return (
+    <Panel titulo="Vaciar base de clientes" className="border-rojo/30 lg:col-span-2">
+      <p className="text-sm">
+        Borra <strong className="num">{n.clientes.toLocaleString('es-PE')}</strong> clientes, <strong className="num">{n.vehiculos.toLocaleString('es-PE')}</strong> vehículos y{' '}
+        <strong className="num">{n.interacciones.toLocaleString('es-PE')}</strong> registros de historial, para volver a cargar la base ya normalizada.
+      </p>
+      <p className="mt-1.5 text-sm text-gris">
+        <strong className="text-tinta">La agenda no se toca:</strong> antes de borrar, cada cita guarda una copia del nombre y celular del cliente, así el botón Recordar sigue funcionando.
+        Tampoco se tocan Cambio de aceite, Convenios, Taller ni Inventario.
+      </p>
+      <ol className="mt-4 space-y-3 text-sm">
+        <li className="flex flex-wrap items-center gap-3">
+          <span className="font-semibold">1.</span>
+          <Boton
+            tam="sm"
+            variante="secundario"
+            icono={<Download className="h-3.5 w-3.5" />}
+            onClick={async () => {
+              await onRespaldo();
+              setRespaldado(true);
+            }}
+          >
+            Descargar respaldo
+          </Boton>
+          {respaldado ? <span className="text-ok">Respaldo descargado ✓</span> : <span className="text-gris">Obligatorio: es la única forma de recuperar los datos.</span>}
+        </li>
+        <li className="flex flex-wrap items-center gap-3">
+          <span className="font-semibold">2.</span>
+          <Entrada
+            value={texto}
+            onChange={(e) => setTexto(e.target.value)}
+            placeholder="Escribe BORRAR"
+            className="h-9 !w-44"
+            disabled={!respaldado || !!paso}
+          />
+          <Boton tam="sm" variante="peligro" disabled={!respaldado || texto.trim() !== 'BORRAR' || !!paso || total === 0} onClick={vaciar}>
+            {paso || 'Vaciar base de clientes'}
+          </Boton>
+          {total === 0 && <span className="text-gris">La base ya está vacía.</span>}
+        </li>
+      </ol>
     </Panel>
   );
 }

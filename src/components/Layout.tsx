@@ -16,8 +16,7 @@ import {
   Settings,
   LogOut,
   Menu,
-  X,
-} from 'lucide-react';
+  X, PhoneIncoming } from 'lucide-react';
 import { useAuth } from '../data/auth';
 import { useDatos } from '../data/store';
 import { cx } from '../lib/utils';
@@ -44,6 +43,7 @@ const NAV: { grupo?: string; items: { a: string; t: string; i: ReactNode; fin?: 
     items: [
       { a: '/registrar', t: 'Registrar cliente', i: <UserPlus /> },
       { a: '/clientes', t: 'Base de clientes', i: <Users /> },
+      { a: '/numeros', t: 'Números nuevos', i: <PhoneIncoming /> },
     ],
   },
   {

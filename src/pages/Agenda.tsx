@@ -8,7 +8,7 @@ import { useAcciones } from '../data/acciones';
 import { AREAS, CANALES, CUPOS_POR_HORA, ESTADOS_CITA, HORAS_SABADO, HORAS_SEMANA, nombreArea } from '../lib/catalogos';
 import type { Area, Bloqueo, Canal, Cita, Cliente, EstadoCita, Nuevo, Vehiculo } from '../lib/types';
 import { ahoraISO, celularValido, cx, enlaceWhatsApp, formatoCelular, hoyISO, normalizarCelular, normalizarPlaca, placaValida, plano } from '../lib/utils';
-import { AreaTexto, Boton, BotonIcono, Campo, Encabezado, Entrada, Etiqueta, Modal, Panel, Pestanas, Selector, useAvisos } from '../components/ui';
+import { AreaTexto, Boton, BotonIcono, Campo, Grupo, Encabezado, Entrada, Etiqueta, Modal, Panel, Pestanas, Selector, useAvisos } from '../components/ui';
 
 type Vista = 'semana' | 'dia';
 type Hueco = { fecha: string; hora: string; area: Area };
@@ -45,6 +45,13 @@ function mensajeConfirmacion(cita: Pick<Cita, 'fecha' | 'hora' | 'servicio' | 'p
     `${cita.placa ? ` (vehículo de placa ${cita.placa})` : ''}. ` +
     'Un día antes te escribimos para recordártela. ¡Gracias por confiar en nosotros!'
   );
+}
+
+/** Área del cliente según dónde se agendó: conversiones van a «Conversiones», el resto al área de la cita. */
+function areaCliente(area: Area, servicio: string, areas: string[]) {
+  const buscar = (re: RegExp) => areas.find((a) => re.test(plano(a)));
+  if (/conversion/i.test(plano(servicio))) return buscar(/convers/);
+  return area === 'gas' ? buscar(/^gas/) : buscar(/mecan/);
 }
 
 /** Canales con los que un cliente puede pedir cita (convenio se registra desde Registrar cliente). */
@@ -93,10 +100,15 @@ function useClienteDeCita() {
     return m;
   }, [datos.vehiculos, porId]);
   return useCallback(
-    (c: Cita) => ({
-      cliente: (c.clienteId && porId.get(c.clienteId)) || porPlaca.get(c.placa)?.cliente,
-      vehiculo: porPlaca.get(c.placa)?.vehiculo,
-    }),
+    (c: Cita) => {
+      const real = (c.clienteId && porId.get(c.clienteId)) || porPlaca.get(c.placa)?.cliente;
+      // Si la ficha ya no existe (p. ej., se vació la base), se usa la copia guardada en la cita.
+      const copia =
+        !real && (c.nombreCliente || c.celularCliente)
+          ? ({ id: '', nombre: c.nombreCliente ?? '', celular: c.celularCliente ?? '', estado: 'cita', canal: 'presencial', fechaContacto: c.fecha, creadoEn: '', creadoPor: '' } as Cliente)
+          : undefined;
+      return { cliente: real || copia, vehiculo: porPlaca.get(c.placa)?.vehiculo };
+    },
     [porId, porPlaca],
   );
 }
@@ -718,6 +730,8 @@ function NuevaCita({ hueco, onCerrar }: { hueco: Hueco; onCerrar: () => void }) 
       if (elegido) {
         clienteId = elegido.id;
         const patch: Partial<Cliente> = { estado: 'cita', fechaCita: hueco.fecha, ultimoContacto: hoyISO() };
+        const ar = areaCliente(hueco.area, servicio, listas.areasCliente);
+        if (ar && !(elegido.areas ?? []).includes(ar)) patch.areas = [...(elegido.areas ?? []), ar];
         if (nombreFinal && nombreFinal !== elegido.nombre) patch.nombre = nombreFinal;
         if (cel && cel !== elegido.celular) patch.celular = cel;
         await editar('clientes', clienteId, patch);
@@ -744,6 +758,7 @@ function NuevaCita({ hueco, onCerrar }: { hueco: Hueco; onCerrar: () => void }) 
           estado: 'cita',
           tipoInteraccion: canal === 'llamada' || canal === 'whatsapp' || canal === 'presencial' ? canal : 'nota',
           comentario: detalle,
+          areas: [areaCliente(hueco.area, servicio, listas.areasCliente)].filter(Boolean) as string[],
         });
         clienteId = r.clienteId;
         const existente = datos.clientes.find((c) => c.id === clienteId);
@@ -757,6 +772,8 @@ function NuevaCita({ hueco, onCerrar }: { hueco: Hueco; onCerrar: () => void }) 
         ...hueco,
         placa: p,
         clienteId,
+        nombreCliente: nombreFinal && !esNombreRelleno(nombreFinal) ? nombreFinal : undefined,
+        celularCliente: cel || elegido?.celular || undefined,
         servicio,
         notas: notas.trim() || undefined,
         estado: 'agendada',
@@ -968,9 +985,9 @@ function NuevaCita({ hueco, onCerrar }: { hueco: Hueco; onCerrar: () => void }) 
           )}
 
           {!elegido && (
-            <Campo etiqueta="¿Por dónde pidió la cita?">
+            <Grupo etiqueta="¿Por dónde pidió la cita?">
               <SelectorCanal valor={canal} onCambio={setCanal} />
-            </Campo>
+            </Grupo>
           )}
 
           <div className="grid gap-4 sm:grid-cols-2">
@@ -1005,11 +1022,13 @@ function NuevaCita({ hueco, onCerrar }: { hueco: Hueco; onCerrar: () => void }) 
 }
 
 /** Completa los datos de contacto de una cita que se agendó solo con la placa (o sin celular). */
-function CompletarCliente({ cita, cliente }: { cita: Cita; cliente?: Cliente }) {
+function CompletarCliente({ cita, cliente: recibido }: { cita: Cita; cliente?: Cliente }) {
+  // Una copia guardada en la cita (sin id) no es una ficha real: se crea el cliente de nuevo.
+  const cliente = recibido?.id ? recibido : undefined;
   const { editar } = useDatos();
   const { registrar, buscarExistente } = useAcciones();
   const avisar = useAvisos();
-  const [nombre, setNombre] = useState(nombreVisible(cliente) ?? '');
+  const [nombre, setNombre] = useState(nombreVisible(recibido) ?? '');
   const [celular, setCelular] = useState('');
   const [canal, setCanal] = useState<Canal>('whatsapp');
   const [error, setError] = useState('');
@@ -1040,6 +1059,7 @@ function CompletarCliente({ cita, cliente }: { cita: Cita; cliente?: Cliente }) 
         if (previo && esNombreRelleno(previo.nombre)) await editar('clientes', r.clienteId, { nombre: nombre.trim() });
         await editar('citas', cita.id, { clienteId: r.clienteId });
       }
+      await editar('citas', cita.id, { celularCliente: cel, ...(nombre.trim() ? { nombreCliente: nombre.trim() } : {}) });
       avisar('Datos del cliente guardados.');
     } finally {
       setGuardando(false);
@@ -1147,10 +1167,12 @@ function DetalleCita({ cita: inicial, onCerrar }: { cita: Cita; onCerrar: () => 
         <div>
           <dt className="text-[12.5px] text-gris">Cliente</dt>
           <dd className="text-sm font-medium">
-            {cliente ? (
+            {cliente?.id ? (
               <Link to={`/clientes/${cliente.id}`} className="underline underline-offset-2">
                 {nombreVisible(cliente) ?? 'Sin nombre'}
               </Link>
+            ) : cliente ? (
+              <span>{nombreVisible(cliente) ?? 'Sin nombre'}</span>
             ) : (
               '—'
             )}

@@ -32,6 +32,17 @@ export const ESTADOS_CITA: { id: EstadoCita; nombre: string; tono: Tono }[] = [
   { id: 'cancelada', nombre: 'Cancelada', tono: 'gris' },
 ];
 
+export const ESTADOS_NUMERO: { id: import('./types').EstadoNumero; nombre: string; tono: Tono }[] = [
+  { id: 'nuevo', nombre: 'Nuevo', tono: 'gris' },
+  { id: 'contactado', nombre: 'Contactado', tono: 'info' },
+  { id: 'sin_respuesta', nombre: 'Sin respuesta', tono: 'aviso' },
+  { id: 'cotizacion', nombre: 'Cotización enviada', tono: 'aviso' },
+  { id: 'cita', nombre: 'Cita agendada', tono: 'info' },
+  { id: 'concretado', nombre: 'Concretado', tono: 'ok' },
+  { id: 'perdido', nombre: 'Perdido', tono: 'rojo' },
+];
+export const estadoNumero = (e?: string) => ESTADOS_NUMERO.find((x) => x.id === e) ?? ESTADOS_NUMERO[0];
+
 export const AREAS: { id: Area; nombre: string }[] = [
   { id: 'mecanica', nombre: 'Mecánica general' },
   { id: 'gas', nombre: 'Área de gas' },
@@ -106,6 +117,8 @@ export const LISTAS_INICIALES: Omit<Listas, 'id' | 'creadoEn' | 'creadoPor'> = {
   tecnicos: [],
   asesores: ['Ximena', 'Renzo', 'Diego', 'Hilary', 'Daniel', 'Caro', 'Jeffer'],
   ciudades: ['Ica', 'Pisco', 'Chincha', 'Nazca', 'Marcona', 'Palpa', 'Lima'],
+  areasCliente: ['Conversiones', 'Mecánica', 'Gas'],
+  tiposContacto: ['Facebook Ads', 'TikTok Ads', 'Instagram', 'WhatsApp', 'Orgánico', 'Llamada', 'Presencial', 'Referido', 'Cliente recurrente'],
 };
 
 export const MESES = [
