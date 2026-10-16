@@ -118,7 +118,7 @@ export const LISTAS_INICIALES: Omit<Listas, 'id' | 'creadoEn' | 'creadoPor'> = {
   asesores: ['Ximena', 'Renzo', 'Diego', 'Hilary', 'Daniel', 'Caro', 'Jeffer'],
   ciudades: ['Ica', 'Pisco', 'Chincha', 'Nazca', 'Marcona', 'Palpa', 'Lima'],
   areasCliente: ['Conversiones', 'Mecánica', 'Gas'],
-  tiposContacto: ['Facebook Ads', 'TikTok Ads', 'Instagram', 'WhatsApp', 'Orgánico', 'Llamada', 'Presencial', 'Referido', 'Cliente recurrente'],
+  tiposContacto: ['Facebook Ads', 'Publicidad', 'TikTok Ads', 'Instagram', 'WhatsApp', 'Orgánico', 'Llamada', 'Presencial', 'Referido', 'Cliente recurrente'],
 };
 
 export const MESES = [

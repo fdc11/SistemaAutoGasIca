@@ -2,13 +2,15 @@ import { useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { addMonths, format, getDay, getDaysInMonth, parseISO } from 'date-fns';
 import { es } from 'date-fns/locale';
-import { ArrowDownRight, ArrowUpRight, Download, MessageCircle, Minus, PhoneIncoming, Plus, UserCheck, UserPlus } from 'lucide-react';
+import { ArrowDownRight, ArrowUpRight, Download, FileUp, MessageCircle, Minus, PhoneIncoming, Plus, UserCheck, UserPlus } from 'lucide-react';
 import { useDatos, useActivos } from '../data/store';
 import { useAcciones } from '../data/acciones';
 import { Grafico } from '../components/Grafico';
+import { leerArchivo, type Hoja } from '../import/lectura';
+import { detectarEncabezado, leerNumeros, type ResultadoLectura } from '../import/numeros';
 import { ESTADOS_NUMERO, estadoNumero } from '../lib/catalogos';
 import type { Canal, EstadoCliente, NumeroNuevo } from '../lib/types';
-import { celularValido, cx, enlaceWhatsApp, fechaCorta, formatoCelular, hoyISO, normalizarCelular, normalizarPlaca, placaValida, plano } from '../lib/utils';
+import { celularValido, cx, enlaceWhatsApp, uid, fechaCorta, formatoCelular, hoyISO, normalizarCelular, normalizarPlaca, placaValida, plano } from '../lib/utils';
 import {
   AreaTexto,
   Boton,
@@ -84,15 +86,21 @@ export default function Numeros() {
   const numeros = useActivos('numeros');
   const [vista, setVista] = useState<Vista>('registro');
   const [editar, setEditar] = useState<NumeroNuevo | 'nuevo' | null>(null);
+  const [importar, setImportar] = useState(false);
   return (
     <>
       <Encabezado
         titulo="Números nuevos"
         descripcion="Cada número que escribe o llama por primera vez: por dónde llegó, qué busca y en qué terminó. En «Análisis» ves el tráfico de cada mes."
         acciones={
-          <Boton icono={<Plus className="h-4 w-4" />} onClick={() => setEditar('nuevo')}>
-            Registrar número
-          </Boton>
+          <>
+            <Boton variante="secundario" icono={<FileUp className="h-4 w-4" />} onClick={() => setImportar(true)}>
+              Importar Excel
+            </Boton>
+            <Boton icono={<Plus className="h-4 w-4" />} onClick={() => setEditar('nuevo')}>
+              Registrar número
+            </Boton>
+          </>
         }
       />
       <Pestanas
@@ -106,7 +114,263 @@ export default function Numeros() {
       />
       {vista === 'registro' ? <Registro onEditar={setEditar} onNuevo={() => setEditar('nuevo')} /> : <Analisis />}
       {editar && <FormNumero numero={editar === 'nuevo' ? undefined : editar} onCerrar={() => setEditar(null)} />}
+      {importar && <ImportarNumeros onCerrar={() => setImportar(false)} />}
     </>
+  );
+}
+
+/* ---------------- Filtro de fechas: mes, día exacto o rango ---------------- */
+
+type Periodo = { modo: 'mes' | 'dia' | 'rango' | 'todo'; mes: string; dia: string; desde: string; hasta: string };
+
+function enPeriodo(fecha: string, p: Periodo) {
+  if (p.modo === 'mes') return !p.mes || fecha.startsWith(p.mes);
+  if (p.modo === 'dia') return !p.dia || fecha === p.dia;
+  if (p.modo === 'rango') return (!p.desde || fecha >= p.desde) && (!p.hasta || fecha <= p.hasta);
+  return true;
+}
+const etiquetaPeriodo = (p: Periodo) =>
+  p.modo === 'mes' ? p.mes || 'todo' : p.modo === 'dia' ? p.dia : p.modo === 'rango' ? `${p.desde || 'inicio'}_a_${p.hasta || 'hoy'}` : 'todo';
+
+function FiltroPeriodo({ valor, onCambio, meses }: { valor: Periodo; onCambio: (p: Periodo) => void; meses: string[] }) {
+  const set = (x: Partial<Periodo>) => onCambio({ ...valor, ...x });
+  return (
+    <div className="flex flex-wrap items-end gap-2">
+      <Campo etiqueta="Fecha" className="w-36">
+        <Selector value={valor.modo} onChange={(e) => set({ modo: e.target.value as Periodo['modo'] })}>
+          <option value="mes">Por mes</option>
+          <option value="dia">Un día</option>
+          <option value="rango">Entre fechas</option>
+          <option value="todo">Todo</option>
+        </Selector>
+      </Campo>
+      {valor.modo === 'mes' && (
+        <Campo etiqueta="Mes" className="w-44">
+          <Selector value={valor.mes} onChange={(e) => set({ mes: e.target.value })}>
+            {meses.map((m) => (
+              <option key={m} value={m}>
+                {mayus(nombreMes(m))}
+              </option>
+            ))}
+          </Selector>
+        </Campo>
+      )}
+      {valor.modo === 'dia' && (
+        <Campo etiqueta="Día" className="w-44">
+          <Entrada type="date" value={valor.dia} onChange={(e) => set({ dia: e.target.value })} />
+        </Campo>
+      )}
+      {valor.modo === 'rango' && (
+        <>
+          <Campo etiqueta="Desde" className="w-40">
+            <Entrada type="date" value={valor.desde} max={valor.hasta || undefined} onChange={(e) => set({ desde: e.target.value })} />
+          </Campo>
+          <Campo etiqueta="Hasta" className="w-40">
+            <Entrada type="date" value={valor.hasta} min={valor.desde || undefined} onChange={(e) => set({ hasta: e.target.value })} />
+          </Campo>
+        </>
+      )}
+    </div>
+  );
+}
+
+/* ---------------- Importar el Excel FORMATO CONTROL NUMEROS ---------------- */
+
+function ImportarNumeros({ onCerrar }: { onCerrar: () => void }) {
+  const { datos, listas, crearVarios, crear, autor } = useDatos();
+  const avisar = useAvisos();
+  const [archivo, setArchivo] = useState<File | null>(null);
+  const [hojas, setHojas] = useState<Hoja[]>([]);
+  const [hoja, setHoja] = useState(0);
+  const [area, setArea] = useState('');
+  const [deducir, setDeducir] = useState(true);
+  const [error, setError] = useState('');
+  const [cargando, setCargando] = useState(false);
+
+  const existentes = useMemo(() => new Set(datos.numeros.filter((n) => !n.eliminado).map((n) => n.celular)), [datos.numeros]);
+  const res: ResultadoLectura | null = useMemo(
+    () => (hojas[hoja] ? leerNumeros(hojas[hoja], existentes, { area: area || undefined, deducirArea: deducir, areas: listas.areasCliente }) : null),
+    [hojas, hoja, existentes, area, deducir, listas.areasCliente],
+  );
+  const meses = useMemo(() => {
+    const m = new Map<string, number>();
+    for (const d of res?.docs ?? []) m.set(mesDe(d.fecha), (m.get(mesDe(d.fecha)) ?? 0) + 1);
+    return [...m.entries()].sort();
+  }, [res]);
+
+  const elegirArchivo = async (f: File | undefined) => {
+    if (!f) return;
+    setError('');
+    setCargando(true);
+    try {
+      const hs = (await leerArchivo(f)).filter((h) => detectarEncabezado(h));
+      if (!hs.length) {
+        setError('No encontré ninguna hoja con las columnas «FECHA DE CONTACTO» y «TELEFONO».');
+        return;
+      }
+      setArchivo(f);
+      setHojas(hs);
+      // Por defecto, la hoja más reciente (la del año más alto)
+      const idx = hs.map((h, i) => [Number(h.nombre.match(/20\d{2}/)?.[0] ?? 0), i]).sort((a, b) => b[0] - a[0])[0][1];
+      setHoja(idx);
+    } catch {
+      setError('No se pudo leer el archivo. ¿Es un Excel (.xlsx)?');
+    } finally {
+      setCargando(false);
+    }
+  };
+
+  const importar = async () => {
+    if (!res?.docs.length || !archivo) return;
+    setCargando(true);
+    try {
+      const importacionId = uid();
+      const ids = await crearVarios('numeros', res.docs.map((d) => ({ ...d, importacionId })));
+      await crear('importaciones', {
+        id: importacionId,
+        archivo: `${archivo.name} · ${hojas[hoja].nombre}`,
+        plantilla: 'Números nuevos',
+        leidas: res.leidas,
+        creadas: ids.length,
+        fusionadas: res.unidas,
+        omitidas: res.yaRegistrados.length + res.sinTelefono.length,
+        ids: { numeros: ids },
+      });
+      avisar(`${ids.length} números importados con su fecha de contacto. Se puede revertir desde Ajustes → Importaciones.`);
+      onCerrar();
+    } catch (e) {
+      console.error(e);
+      setError('No se pudo importar. Revisa la conexión e inténtalo otra vez.');
+    } finally {
+      setCargando(false);
+    }
+  };
+
+  return (
+    <Modal
+      abierto
+      onCerrar={onCerrar}
+      titulo="Importar números desde Excel"
+      descripcion="Hoja tipo «TABLA DE PROSPECTOS»: cada número entra con la fecha de contacto y el último contacto del Excel."
+      ancho="lg"
+      pie={
+        <>
+          <Boton variante="secundario" onClick={onCerrar}>
+            Cancelar
+          </Boton>
+          <Boton onClick={importar} disabled={cargando || !res?.docs.length}>
+            {cargando ? 'Importando…' : res ? `Importar ${res.docs.length} números` : 'Importar'}
+          </Boton>
+        </>
+      }
+    >
+      <div className="space-y-5">
+        <label className="flex cursor-pointer flex-col items-center justify-center gap-2 rounded-lg border-2 border-dashed border-linea-fuerte px-4 py-6 text-center hover:border-tinta/40">
+          <FileUp className="h-6 w-6 text-gris" />
+          <span className="text-sm font-semibold">{archivo ? archivo.name : 'Elegir archivo Excel'}</span>
+          <span className="text-xs text-gris">{archivo ? 'Toca para cambiar de archivo' : 'Por ejemplo, FORMATO CONTROL NUMEROS.xlsx'}</span>
+          <input type="file" accept=".xlsx,.xls" className="sr-only" onChange={(e) => elegirArchivo(e.target.files?.[0])} />
+        </label>
+
+        {hojas.length > 0 && (
+          <div className="grid gap-4 sm:grid-cols-2">
+            <Campo etiqueta="Hoja">
+              <Selector value={hoja} onChange={(e) => setHoja(Number(e.target.value))}>
+                {hojas.map((h, i) => (
+                  <option key={h.nombre} value={i}>
+                    {h.nombre}
+                  </option>
+                ))}
+              </Selector>
+            </Campo>
+            <Campo etiqueta="Área" ayuda={area ? 'Se pone a todos los números de esta hoja.' : undefined}>
+              <Selector value={area} onChange={(e) => setArea(e.target.value)}>
+                <option value="">Según el interés de cada uno</option>
+                {listas.areasCliente.map((a) => (
+                  <option key={a} value={a}>
+                    Todos: {a}
+                  </option>
+                ))}
+              </Selector>
+            </Campo>
+            {!area && (
+              <label className="flex items-center gap-2 text-sm text-gris sm:col-span-2">
+                <input type="checkbox" className="h-4 w-4 accent-rojo" checked={deducir} onChange={(e) => setDeducir(e.target.checked)} />
+                Deducir el área del interés (conversión → Conversiones; gas → Gas; aceite y mantenimiento → Mecánica). Los dudosos quedan sin área.
+              </label>
+            )}
+          </div>
+        )}
+
+        {res && (
+          <>
+            <div className="grid grid-cols-2 gap-px overflow-hidden rounded-md border border-linea bg-linea sm:grid-cols-4">
+              {[
+                ['Se importan', res.docs.length, 'ok'],
+                ['Repetidos en el archivo (se unen)', res.unidas, ''],
+                ['Ya estaban en el sistema', res.yaRegistrados.length, ''],
+                ['Sin teléfono válido', res.sinTelefono.length, res.sinTelefono.length ? 'aviso' : ''],
+              ].map(([t, n, tono]) => (
+                <div key={t as string} className="bg-white px-3 py-2.5">
+                  <p className="text-xs text-gris">{t}</p>
+                  <p className={cx('font-display text-2xl font-bold num', tono === 'ok' && 'text-ok', tono === 'aviso' && 'text-aviso')}>{n as number}</p>
+                </div>
+              ))}
+            </div>
+            {meses.length > 0 && (
+              <p className="text-[13px] text-gris">
+                Quedan en sus meses:{' '}
+                {meses.map(([m, n]) => (
+                  <span key={m} className="mr-2 inline-block">
+                    <span className="font-semibold text-tinta">{mayus(nombreMes(m, true))}</span> {n}
+                  </span>
+                ))}
+              </p>
+            )}
+            {res.docs.length > 0 && (
+              <div className="overflow-hidden rounded-md border border-linea">
+                <p className="border-b border-linea bg-fondo px-3 py-1.5 text-xs font-semibold text-gris">Vista previa (primeros 6)</p>
+                <table className="w-full text-[13px]">
+                  <tbody>
+                    {[...res.docs]
+                      .sort((a, b) => b.fecha.localeCompare(a.fecha))
+                      .slice(0, 6)
+                      .map((d) => (
+                        <tr key={d.celular} className="border-t border-linea first:border-0">
+                          <td className="px-3 py-1.5 num">{fechaCorta(d.fecha)}</td>
+                          <td className="px-3 py-1.5 num">{formatoCelular(d.celular)}</td>
+                          <td className="px-3 py-1.5">{d.nombre || <span className="text-gris">Sin nombre</span>}</td>
+                          <td className="px-3 py-1.5">{d.tipoContacto}</td>
+                          <td className="px-3 py-1.5">{d.interes || '—'}</td>
+                          <td className="px-3 py-1.5 text-gris">{d.area || '—'}</td>
+                        </tr>
+                      ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+            {(res.sinTelefono.length > 0 || res.fechasCorregidas.length > 0) && (
+              <details className="rounded-md border border-linea px-3 py-2 text-[13px]">
+                <summary className="cursor-pointer font-semibold">Ver detalles ({res.sinTelefono.length + res.fechasCorregidas.length})</summary>
+                <ul className="mt-2 max-h-40 space-y-1 overflow-y-auto text-gris">
+                  {res.sinTelefono.map((x) => (
+                    <li key={'s' + x.fila}>Fila {x.fila}: no se importa, {x.detalle}.</li>
+                  ))}
+                  {res.fechasCorregidas.map((x, i) => (
+                    <li key={'f' + i}>Fila {x.fila}: {x.detalle}.</li>
+                  ))}
+                </ul>
+              </details>
+            )}
+            {res.yaRegistrados.length > 0 && res.docs.length === 0 && (
+              <p className="rounded-md bg-info-suave px-3 py-2 text-sm text-info">Todos los números de esta hoja ya están en el sistema. No hay nada nuevo que importar.</p>
+            )}
+          </>
+        )}
+        {error && <p className="rounded-md bg-rojo-suave px-3 py-2 text-sm text-rojo-osc">{error}</p>}
+        <p className="text-xs text-gris">Registrado por: {autor}. Después de importar, cada fecha se puede corregir abriendo el número.</p>
+      </div>
+    </Modal>
   );
 }
 
@@ -115,7 +379,7 @@ export default function Numeros() {
 function Registro({ onEditar, onNuevo }: { onEditar: (n: NumeroNuevo) => void; onNuevo: () => void }) {
   const numeros = useActivos('numeros');
   const { listas } = useDatos();
-  const [mes, setMes] = useState(mesActual());
+  const [periodo, setPeriodo] = useState<Periodo>({ modo: 'mes', mes: mesActual(), dia: hoyISO(), desde: '', hasta: '' });
   const [tipo, setTipo] = useState('');
   const [estado, setEstado] = useState('');
   const [area, setArea] = useState('');
@@ -125,10 +389,10 @@ function Registro({ onEditar, onNuevo }: { onEditar: (n: NumeroNuevo) => void; o
   const lista = useMemo(() => {
     const t = plano(q).replace(/\s+/g, '');
     return numeros
-      .filter((n) => (!mes || n.fecha.startsWith(mes)) && (!tipo || n.tipoContacto === tipo) && (!estado || n.estado === estado) && (!area || n.area === area))
+      .filter((n) => enPeriodo(n.fecha, periodo) && (!tipo || n.tipoContacto === tipo) && (!estado || n.estado === estado) && (!area || n.area === area))
       .filter((n) => !t || plano(`${n.nombre}${n.celular}${n.placa}${n.interes}${n.interesDetalle}${n.comentarios}`).replace(/\s+/g, '').includes(t))
       .sort((a, b) => b.fecha.localeCompare(a.fecha) || b.creadoEn.localeCompare(a.creadoEn));
-  }, [numeros, mes, tipo, estado, area, q]);
+  }, [numeros, periodo, tipo, estado, area, q]);
 
   const exportar = async () => {
     const XLSX = await import('xlsx');
@@ -153,22 +417,13 @@ function Registro({ onEditar, onNuevo }: { onEditar: (n: NumeroNuevo) => void; o
     ws['!cols'] = Object.keys(filas[0] ?? { x: '' }).map((k) => ({ wch: Math.max(12, k.length + 2) }));
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, 'NUMEROS NUEVOS');
-    XLSX.writeFile(wb, `numeros-nuevos-${mes || 'todo'}.xlsx`, { cellDates: true });
+    XLSX.writeFile(wb, `numeros-nuevos-${etiquetaPeriodo(periodo)}.xlsx`, { cellDates: true });
   };
 
   return (
     <Panel sinRelleno>
       <div className="flex flex-wrap items-end gap-3 border-b border-linea p-4">
-        <Campo etiqueta="Mes" className="w-44">
-          <Selector value={mes} onChange={(e) => setMes(e.target.value)}>
-            {meses.map((m) => (
-              <option key={m} value={m}>
-                {mayus(nombreMes(m))}
-              </option>
-            ))}
-            <option value="">Todos los meses</option>
-          </Selector>
-        </Campo>
+        <FiltroPeriodo valor={periodo} onCambio={setPeriodo} meses={meses} />
         <Campo etiqueta="Tipo de contacto" className="w-44">
           <Selector value={tipo} onChange={(e) => setTipo(e.target.value)}>
             <option value="">Todos</option>
