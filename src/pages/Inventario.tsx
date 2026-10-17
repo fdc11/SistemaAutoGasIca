@@ -346,7 +346,7 @@ function FormMovimiento({
           </>
         )}
         <Campo etiqueta="Nota" className="sm:col-span-2">
-          <Entrada value={f.nota} onChange={(e) => setF({ ...f, nota: e.target.value })} placeholder={tipo === 'entrada' ? 'Proveedor, guía, factura' : 'Opcional'} />
+          <Entrada value={f.nota} onChange={(e) => setF({ ...f, nota: e.target.value })} />
         </Campo>
       </div>
       {error && <p className="mt-4 rounded-md bg-rojo-suave px-3 py-2 text-sm text-rojo-osc">{error}</p>}
@@ -419,10 +419,10 @@ function FormProducto({ producto, onCerrar }: { producto?: Producto; onCerrar: (
           </Selector>
         </Campo>
         <Campo etiqueta="Nombre" requerido>
-          <Entrada value={f.nombre} onChange={(e) => setF({ ...f, nombre: e.target.value })} placeholder="Tanque GLP toroidal" />
+          <Entrada value={f.nombre} onChange={(e) => setF({ ...f, nombre: e.target.value })} />
         </Campo>
         <Campo etiqueta="Medida o variante">
-          <Entrada value={f.variante} onChange={(e) => setF({ ...f, variante: e.target.value })} placeholder="12 GL · boca interna" />
+          <Entrada value={f.variante} onChange={(e) => setF({ ...f, variante: e.target.value })} />
         </Campo>
         <Campo etiqueta="Stock mínimo" ayuda="Avisa cuando el stock baje de este número. 0 = sin aviso.">
           <Entrada inputMode="numeric" value={f.stockMinimo} onChange={(e) => setF({ ...f, stockMinimo: e.target.value.replace(/\D/g, '') })} />

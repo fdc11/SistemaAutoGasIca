@@ -88,7 +88,7 @@ export default function Login() {
 
           <form onSubmit={enviar} className="mt-8 space-y-5" noValidate>
             <Campo etiqueta="Correo">
-              <Entrada type="email" autoComplete="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="nombre@autogas.pe" />
+              <Entrada type="email" autoComplete="email" value={email} onChange={(e) => setEmail(e.target.value)} />
             </Campo>
             <Campo etiqueta="Contraseña">
               <div className="relative">

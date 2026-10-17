@@ -410,7 +410,7 @@ function FormServicio({ servicio, onCerrar }: { servicio?: ServicioAceite; onCer
     >
       <div className="grid gap-4 sm:grid-cols-2">
         <Campo etiqueta="Placa" requerido>
-          <Entrada value={f.placa} onChange={(e) => set('placa', e.target.value.toUpperCase())} placeholder="ABC123" />
+          <Entrada value={f.placa} onChange={(e) => set('placa', e.target.value.toUpperCase())} />
         </Campo>
         <Campo etiqueta="Fecha" requerido>
           <Entrada type="date" value={f.fecha} max={hoyISO()} onChange={(e) => set('fecha', e.target.value)} />
@@ -443,7 +443,7 @@ function FormServicio({ servicio, onCerrar }: { servicio?: ServicioAceite; onCer
           </Selector>
         </Campo>
         <Campo etiqueta="Detalle" requerido>
-          <Entrada value={f.detalle} onChange={(e) => set('detalle', e.target.value)} placeholder="Super promo Castrol 5W30" />
+          <Entrada value={f.detalle} onChange={(e) => set('detalle', e.target.value)} />
         </Campo>
         <Campo etiqueta="Km actual" ayuda={intervalo ? `Intervalo: ${intervalo.toLocaleString('es-PE')} km${km ? ` · próximo a los ${(km + intervalo).toLocaleString('es-PE')} km` : ''}` : 'Elige el aceite para calcular el próximo cambio'}>
           <Entrada inputMode="numeric" value={f.kmActual} onChange={(e) => set('kmActual', e.target.value.replace(/\D/g, ''))} />
@@ -452,7 +452,7 @@ function FormServicio({ servicio, onCerrar }: { servicio?: ServicioAceite; onCer
           <Entrada inputMode="decimal" value={f.monto} onChange={(e) => set('monto', e.target.value.replace(/[^\d.]/g, ''))} />
         </Campo>
         <Campo etiqueta="Celular" requerido={!f.sinCelular} className="sm:col-span-2" ayuda={cliente?.celular && !f.celular ? `Se usará ${formatoCelular(cliente.celular)}` : undefined}>
-          <Entrada inputMode="numeric" value={f.celular} disabled={f.sinCelular} onChange={(e) => set('celular', e.target.value)} placeholder={cliente?.celular ? formatoCelular(cliente.celular) : '987 654 321'} />
+          <Entrada inputMode="numeric" value={f.celular} disabled={f.sinCelular} onChange={(e) => set('celular', e.target.value)} />
         </Campo>
         <label className="flex items-center gap-2 text-sm text-gris sm:col-span-2">
           <input type="checkbox" className="h-4 w-4 accent-rojo" checked={f.sinCelular} onChange={(e) => set('sinCelular', e.target.checked)} />
@@ -513,7 +513,7 @@ function FormRespuesta({ ficha, onCerrar }: { ficha: FichaAceite; onCerrar: () =
             </button>
           ))}
         </div>
-        <AreaTexto value={nota} onChange={(e) => setNota(e.target.value)} placeholder="Detalle (opcional)" className="min-h-[64px]" />
+        <AreaTexto value={nota} onChange={(e) => setNota(e.target.value)} className="min-h-[64px]" />
         {r === 'Agendó cita' && (
           <p className="text-sm text-gris">
             Recuerda agendarlo en la{' '}

@@ -219,7 +219,6 @@ export default function Registrar() {
                   disabled={f.sinCelular}
                   onChange={(e) => set('celular', e.target.value)}
                   invalido={!!errores.celular}
-                  placeholder="987 654 321"
                 />
               </Campo>
               <Campo etiqueta="Ciudad">
@@ -251,15 +250,14 @@ export default function Registrar() {
                   value={f.placa}
                   onChange={(e) => set('placa', e.target.value.toUpperCase())}
                   invalido={!!errores.placa}
-                  placeholder="ABC123"
                   maxLength={8}
                 />
               </Campo>
               <Campo etiqueta="Marca">
-                <Entrada value={f.marca} onChange={(e) => set('marca', e.target.value)} placeholder="Kia" />
+                <Entrada value={f.marca} onChange={(e) => set('marca', e.target.value)} />
               </Campo>
               <Campo etiqueta="Modelo">
-                <Entrada value={f.modelo} onChange={(e) => set('modelo', e.target.value)} placeholder="Picanto" />
+                <Entrada value={f.modelo} onChange={(e) => set('modelo', e.target.value)} />
               </Campo>
               <Campo etiqueta="Año">
                 <Entrada inputMode="numeric" maxLength={4} value={f.anio} onChange={(e) => set('anio', e.target.value)} />

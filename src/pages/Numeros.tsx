@@ -670,10 +670,10 @@ function FormNumero({ numero, onCerrar }: { numero?: NumeroNuevo; onCerrar: () =
             <Entrada type="date" value={f.fecha} onChange={(e) => set('fecha', e.target.value)} />
           </Campo>
           <Campo etiqueta="Teléfono" requerido>
-            <Entrada value={f.celular} onChange={(e) => set('celular', e.target.value)} inputMode="tel" placeholder="987 654 321" invalido={!!f.celular && !celularValido(cel)} autoFocus={!numero} />
+            <Entrada value={f.celular} onChange={(e) => set('celular', e.target.value)} inputMode="tel" invalido={!!f.celular && !celularValido(cel)} autoFocus={!numero} />
           </Campo>
           <Campo etiqueta="Nombre / contacto">
-            <Entrada value={f.nombre} onChange={(e) => set('nombre', e.target.value)} placeholder="Como aparece en WhatsApp" />
+            <Entrada value={f.nombre} onChange={(e) => set('nombre', e.target.value)} />
           </Campo>
         </div>
 
@@ -724,7 +724,7 @@ function FormNumero({ numero, onCerrar }: { numero?: NumeroNuevo; onCerrar: () =
             </Selector>
           </Campo>
           <Campo etiqueta="Detalle del interés">
-            <Entrada value={f.interesDetalle} onChange={(e) => set('interesDetalle', e.target.value)} placeholder="Ej.: promo Castrol, GLP para Haval" />
+            <Entrada value={f.interesDetalle} onChange={(e) => set('interesDetalle', e.target.value)} />
           </Campo>
           <Campo etiqueta="Área">
             <Selector value={f.area} onChange={(e) => set('area', e.target.value)}>
@@ -738,13 +738,13 @@ function FormNumero({ numero, onCerrar }: { numero?: NumeroNuevo; onCerrar: () =
 
         <div className="grid gap-4 sm:grid-cols-3">
           <Campo etiqueta="Placa">
-            <Entrada value={f.placa} onChange={(e) => set('placa', e.target.value.toUpperCase())} placeholder="ABC123" invalido={!!f.placa && !placaValida(pla)} />
+            <Entrada value={f.placa} onChange={(e) => set('placa', e.target.value.toUpperCase())} invalido={!!f.placa && !placaValida(pla)} />
           </Campo>
           <Campo etiqueta="Marca">
-            <Entrada value={f.marca} onChange={(e) => set('marca', e.target.value)} placeholder="Toyota" />
+            <Entrada value={f.marca} onChange={(e) => set('marca', e.target.value)} />
           </Campo>
           <Campo etiqueta="Modelo y año">
-            <Entrada value={f.modelo} onChange={(e) => set('modelo', e.target.value)} placeholder="Yaris 2016" />
+            <Entrada value={f.modelo} onChange={(e) => set('modelo', e.target.value)} />
           </Campo>
         </div>
 
@@ -767,7 +767,7 @@ function FormNumero({ numero, onCerrar }: { numero?: NumeroNuevo; onCerrar: () =
         </div>
 
         <Campo etiqueta="Comentarios">
-          <AreaTexto value={f.comentarios} onChange={(e) => set('comentarios', e.target.value)} className="min-h-[64px]" placeholder="Ej.: se le envió cotización de conversión GLP" />
+          <AreaTexto value={f.comentarios} onChange={(e) => set('comentarios', e.target.value)} className="min-h-[64px]" />
         </Campo>
       </div>
       {error && <p className="mt-4 rounded-md bg-rojo-suave px-3 py-2 text-sm text-rojo-osc">{error}</p>}

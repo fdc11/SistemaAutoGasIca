@@ -298,7 +298,6 @@ export default function FichaCliente() {
                   <AreaTexto
                     value={comentarioEstado}
                     onChange={(ev) => setComentarioEstado(ev.target.value)}
-                    placeholder="Por qué cambia (opcional): sigue conversando, pidió otra cotización…"
                     className="min-h-[64px]"
                   />
                   <Boton className="w-full" onClick={guardarEstado}>
@@ -323,7 +322,7 @@ export default function FichaCliente() {
                   </button>
                 ))}
               </div>
-              <AreaTexto value={nota} onChange={(ev) => setNota(ev.target.value)} placeholder="Qué se habló y qué quedó pendiente" />
+              <AreaTexto value={nota} onChange={(ev) => setNota(ev.target.value)} />
               <Campo etiqueta="Volver a contactar el">
                 <Entrada type="date" value={proximo} onChange={(ev) => setProximo(ev.target.value)} />
               </Campo>
@@ -542,7 +541,7 @@ function AgregarVehiculo({
     >
       <div className="grid gap-4 sm:grid-cols-2">
         <Campo etiqueta="Placa" error={error} className="sm:col-span-2">
-          <Entrada value={v.placa} onChange={(e) => setV({ ...v, placa: e.target.value.toUpperCase() })} placeholder="ABC123" />
+          <Entrada value={v.placa} onChange={(e) => setV({ ...v, placa: e.target.value.toUpperCase() })} />
         </Campo>
         <Campo etiqueta="Marca">
           <Entrada value={v.marca} onChange={(e) => setV({ ...v, marca: e.target.value })} />

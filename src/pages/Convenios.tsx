@@ -826,10 +826,10 @@ function FormAtencion({ atencion, onCerrar }: { atencion?: AtencionConvenio; onC
           )}
           <div className="grid gap-4 sm:grid-cols-2">
             <Campo etiqueta="Nombre" requerido={!elegido}>
-              <Entrada value={f.nombre} onChange={(e) => set('nombre', e.target.value)} placeholder="Ej.: Angel Crespo Aroni" />
+              <Entrada value={f.nombre} onChange={(e) => set('nombre', e.target.value)} />
             </Campo>
             <Campo etiqueta="Celular">
-              <Entrada value={f.celular} onChange={(e) => set('celular', e.target.value)} inputMode="tel" placeholder="987 654 321" invalido={!!f.celular && !celularValido(cel)} />
+              <Entrada value={f.celular} onChange={(e) => set('celular', e.target.value)} inputMode="tel" invalido={!!f.celular && !celularValido(cel)} />
             </Campo>
           </div>
         </fieldset>
@@ -838,7 +838,7 @@ function FormAtencion({ atencion, onCerrar }: { atencion?: AtencionConvenio; onC
           <legend className="mb-2 text-[13px] font-semibold uppercase tracking-wide text-gris">Vehículo</legend>
           <div className="grid gap-4 sm:grid-cols-3">
             <Campo etiqueta="Placa" requerido>
-              <Entrada value={f.placa} onChange={(e) => alCambiarPlaca(e.target.value)} placeholder="ABC123" invalido={!!f.placa && !placaValida(p)} />
+              <Entrada value={f.placa} onChange={(e) => alCambiarPlaca(e.target.value)} invalido={!!f.placa && !placaValida(p)} />
               {placasCliente.length > 1 && (
                 <div className="mt-1.5 flex flex-wrap gap-1">
                   {placasCliente.map((x) => (
@@ -855,10 +855,10 @@ function FormAtencion({ atencion, onCerrar }: { atencion?: AtencionConvenio; onC
               )}
             </Campo>
             <Campo etiqueta="Marca">
-              <Entrada value={f.marca} onChange={(e) => set('marca', e.target.value)} placeholder="Kia" />
+              <Entrada value={f.marca} onChange={(e) => set('marca', e.target.value)} />
             </Campo>
             <Campo etiqueta="Modelo y año">
-              <Entrada value={f.modelo} onChange={(e) => set('modelo', e.target.value)} placeholder="Cerato 2018" />
+              <Entrada value={f.modelo} onChange={(e) => set('modelo', e.target.value)} />
             </Campo>
           </div>
         </fieldset>
@@ -878,7 +878,6 @@ function FormAtencion({ atencion, onCerrar }: { atencion?: AtencionConvenio; onC
                 value={f.detalle}
                 onChange={(e) => set('detalle', e.target.value)}
                 list={esAceite ? 'aceites-convenio' : undefined}
-                placeholder={esAceite ? 'Liqui Moly 5W30' : 'Ej.: regulación por falla al pasar a gas'}
               />
               <datalist id="aceites-convenio">
                 {productosAceite.map((x) => (
@@ -887,18 +886,18 @@ function FormAtencion({ atencion, onCerrar }: { atencion?: AtencionConvenio; onC
               </datalist>
             </Campo>
             <Campo etiqueta="Filtro de aire" ayuda={sugerido?.filtroAire && !f.filtroAire ? `Del catálogo: ${sugerido.filtroAire}` : undefined}>
-              <Entrada value={f.filtroAire} onChange={(e) => set('filtroAire', e.target.value)} placeholder={sugerido?.filtroAire || 'Código'} />
+              <Entrada value={f.filtroAire} onChange={(e) => set('filtroAire', e.target.value)} />
             </Campo>
             <Campo etiqueta="Filtro de aceite" ayuda={sugerido?.filtroAceite && !f.filtroAceite ? `Del catálogo: ${sugerido.filtroAceite}` : undefined}>
-              <Entrada value={f.filtroAceite} onChange={(e) => set('filtroAceite', e.target.value)} placeholder={sugerido?.filtroAceite || 'Código'} />
+              <Entrada value={f.filtroAceite} onChange={(e) => set('filtroAceite', e.target.value)} />
             </Campo>
             {esAceite && (
               <Campo etiqueta="Kilometraje" ayuda="Sirve para calcular el próximo cambio.">
-                <Entrada value={f.km} onChange={(e) => set('km', e.target.value.replace(/\D/g, ''))} inputMode="numeric" placeholder="45 000" />
+                <Entrada value={f.km} onChange={(e) => set('km', e.target.value.replace(/\D/g, ''))} inputMode="numeric" />
               </Campo>
             )}
             <Campo etiqueta="Monto (S/)" ayuda="Lo que se le cobrará a la empresa.">
-              <Entrada value={f.monto} onChange={(e) => set('monto', e.target.value)} inputMode="decimal" placeholder="0.00" />
+              <Entrada value={f.monto} onChange={(e) => set('monto', e.target.value)} inputMode="decimal" />
             </Campo>
             <Campo etiqueta="Cobro">
               <Selector value={f.cobro} onChange={(e) => set('cobro', e.target.value as typeof f.cobro)}>
@@ -911,7 +910,7 @@ function FormAtencion({ atencion, onCerrar }: { atencion?: AtencionConvenio; onC
         </fieldset>
 
         <Campo etiqueta="Notas">
-          <AreaTexto value={f.notas} onChange={(e) => set('notas', e.target.value)} className="min-h-[60px]" placeholder="Ej.: orden de servicio n.° 123" />
+          <AreaTexto value={f.notas} onChange={(e) => set('notas', e.target.value)} className="min-h-[60px]" />
         </Campo>
       </div>
       {error && <p className="mt-4 rounded-md bg-rojo-suave px-3 py-2 text-sm text-rojo-osc">{error}</p>}

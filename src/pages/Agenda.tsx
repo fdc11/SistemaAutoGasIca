@@ -924,7 +924,6 @@ function NuevaCita({ hueco, onCerrar }: { hueco: Hueco; onCerrar: () => void }) 
               <Entrada
                 value={nombre}
                 onChange={(e) => setNombre(e.target.value)}
-                placeholder={elegido ? 'Sin nombre registrado: escríbelo para completarlo' : 'Ej.: Juan Pérez'}
               />
             </Campo>
             <Campo etiqueta="Celular" ayuda={!celEscrito ? 'Sin celular no se le puede recordar la cita.' : undefined}>
@@ -932,7 +931,6 @@ function NuevaCita({ hueco, onCerrar }: { hueco: Hueco; onCerrar: () => void }) 
                 value={celular}
                 onChange={(e) => setCelular(e.target.value)}
                 inputMode="tel"
-                placeholder="987 654 321"
                 invalido={!!celEscrito && !celularValido(cel)}
               />
             </Campo>
@@ -940,7 +938,6 @@ function NuevaCita({ hueco, onCerrar }: { hueco: Hueco; onCerrar: () => void }) 
               <Entrada
                 value={placa}
                 onChange={(e) => setPlaca(e.target.value.toUpperCase())}
-                placeholder="ABC123"
                 invalido={!!placa && !placaValida(p)}
               />
               {placasCliente.length > 1 && (
@@ -1010,12 +1007,12 @@ function NuevaCita({ hueco, onCerrar }: { hueco: Hueco; onCerrar: () => void }) 
             </Campo>
           </div>
           <Campo etiqueta="Notas">
-            <AreaTexto value={notas} onChange={(e) => setNotas(e.target.value)} placeholder="Ej.: el carro tarda en pasar a gas" className="min-h-[64px]" />
+            <AreaTexto value={notas} onChange={(e) => setNotas(e.target.value)} className="min-h-[64px]" />
           </Campo>
         </div>
       ) : (
         <Campo etiqueta="Motivo" requerido ayuda="Se ocupan los dos cupos de esta hora.">
-          <Entrada value={motivo} onChange={(e) => setMotivo(e.target.value)} placeholder="Ej.: técnico en capacitación" />
+          <Entrada value={motivo} onChange={(e) => setMotivo(e.target.value)} />
         </Campo>
       )}
       {error && <p className="mt-4 rounded-md bg-rojo-suave px-3 py-2 text-sm text-rojo-osc">{error}</p>}
@@ -1075,9 +1072,13 @@ function CompletarCliente({ cita, cliente: recibido }: { cita: Cita; cliente?: C
       </p>
       <div className="grid gap-2 sm:grid-cols-[1fr_1fr_auto] sm:items-end">
         {(!cliente || esNombreRelleno(cliente.nombre)) && (
-          <Entrada value={nombre} onChange={(e) => setNombre(e.target.value)} placeholder="Nombre" className="h-9 bg-white" />
+          <Campo etiqueta="Nombre">
+            <Entrada value={nombre} onChange={(e) => setNombre(e.target.value)} className="h-9 bg-white" />
+          </Campo>
         )}
-        <Entrada value={celular} onChange={(e) => setCelular(e.target.value)} placeholder="Celular" inputMode="tel" className="h-9 bg-white" />
+        <Campo etiqueta="Celular">
+          <Entrada value={celular} onChange={(e) => setCelular(e.target.value)} inputMode="tel" className="h-9 bg-white" />
+        </Campo>
         <Boton tam="sm" onClick={guardar} disabled={guardando}>
           Guardar
         </Boton>

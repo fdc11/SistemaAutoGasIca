@@ -174,7 +174,7 @@ function NuevoIngreso({ onCerrar }: { onCerrar: () => void }) {
     >
       <div className="grid gap-4 sm:grid-cols-2">
         <Campo etiqueta="Placa" requerido className="sm:col-span-2">
-          <Entrada value={placa} onChange={(e) => setPlaca(e.target.value.toUpperCase())} placeholder="ABC123" />
+          <Entrada value={placa} onChange={(e) => setPlaca(e.target.value.toUpperCase())} />
         </Campo>
         {placaValida(p) && (
           <p className={cx('rounded-md bg-fondo px-3 py-2 text-sm sm:col-span-2', !cliente && 'text-gris')}>

@@ -56,17 +56,35 @@ export default function Ajustes() {
   );
   const importaciones = [...datos.importaciones].sort((a, b) => b.creadoEn.localeCompare(a.creadoEn));
 
-  const respaldo = async () => {
-    const XLSX = await import('xlsx');
-    const wb = XLSX.utils.book_new();
-    for (const col of COLECCIONES) {
-      const filas = (datos[col] as any[]).map((x) =>
-        Object.fromEntries(Object.entries(x).map(([k, v]) => [k, typeof v === 'object' && v !== null ? JSON.stringify(v) : v])),
-      );
-      XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(filas.length ? filas : [{ vacio: '' }]), col.slice(0, 31));
+  /** Descarga todo. Devuelve true si se descargó bien. */
+  const respaldo = async (): Promise<boolean> => {
+    try {
+      const XLSX = await import('xlsx');
+      const wb = XLSX.utils.book_new();
+      // Excel no acepta más de 32 767 caracteres por celda: los textos largos
+      // (p. ej., la lista de registros de una importación) se reparten en «campo», «campo (2)»…
+      const MAX = 32000;
+      for (const col of COLECCIONES) {
+        const filas = (datos[col] as any[]).map((x) => {
+          const fila: Record<string, unknown> = {};
+          for (const [k, v] of Object.entries(x)) {
+            const val = typeof v === 'object' && v !== null ? JSON.stringify(v) : v;
+            if (typeof val === 'string' && val.length > MAX) {
+              for (let i = 0; i * MAX < val.length; i++) fila[i ? `${k} (${i + 1})` : k] = val.slice(i * MAX, (i + 1) * MAX);
+            } else fila[k] = val;
+          }
+          return fila;
+        });
+        XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(filas.length ? filas : [{ vacio: '' }]), col.slice(0, 31));
+      }
+      XLSX.writeFile(wb, `respaldo-autogas-${hoyISO()}.xlsx`);
+      avisar('Respaldo descargado.');
+      return true;
+    } catch (e) {
+      console.error(e);
+      avisar('No se pudo generar el respaldo. Recarga la página e inténtalo otra vez.', 'error');
+      return false;
     }
-    XLSX.writeFile(wb, `respaldo-autogas-${hoyISO()}.xlsx`);
-    avisar('Respaldo descargado.');
   };
 
   const revertir = async (imp: (typeof importaciones)[number]) => {
@@ -230,7 +248,7 @@ export default function Ajustes() {
         <div className="grid gap-5 lg:grid-cols-2">
           <Panel titulo="Respaldo">
             <p className="text-sm text-gris">Descarga todos los datos del sistema en un Excel, una hoja por tipo de registro. Guárdalo una vez por semana.</p>
-            <Boton className="mt-4" variante="secundario" icono={<Download className="h-4 w-4" />} onClick={respaldo}>
+            <Boton className="mt-4" variante="secundario" icono={<Download className="h-4 w-4" />} onClick={() => void respaldo()}>
               Descargar respaldo completo
             </Boton>
             <p className="mt-5 text-sm text-gris">
@@ -355,7 +373,7 @@ function EditorLista({ titulo, ayuda, valores, onGuardar }: { titulo: string; ay
           agregar();
         }}
       >
-        <Entrada value={nuevo} onChange={(e) => setNuevo(e.target.value)} placeholder="Agregar opción" />
+        <Entrada value={nuevo} onChange={(e) => setNuevo(e.target.value)} aria-label={`Nueva opción para ${titulo}`} />
         <Boton type="submit" variante="secundario" disabled={!nuevo.trim()}>
           Agregar
         </Boton>
@@ -365,7 +383,7 @@ function EditorLista({ titulo, ayuda, valores, onGuardar }: { titulo: string; ay
 }
 
 /** Borra clientes, vehículos e historial. Las citas de la agenda se conservan con una copia del nombre y celular. */
-function VaciarClientes({ onRespaldo }: { onRespaldo: () => Promise<void> }) {
+function VaciarClientes({ onRespaldo }: { onRespaldo: () => Promise<boolean> }) {
   const { datos, crearVarios, borrarDefinitivo } = useDatos();
   const avisar = useAvisos();
   const [respaldado, setRespaldado] = useState(false);
@@ -423,8 +441,7 @@ function VaciarClientes({ onRespaldo }: { onRespaldo: () => Promise<void> }) {
             variante="secundario"
             icono={<Download className="h-3.5 w-3.5" />}
             onClick={async () => {
-              await onRespaldo();
-              setRespaldado(true);
+              if (await onRespaldo()) setRespaldado(true);
             }}
           >
             Descargar respaldo
@@ -433,10 +450,11 @@ function VaciarClientes({ onRespaldo }: { onRespaldo: () => Promise<void> }) {
         </li>
         <li className="flex flex-wrap items-center gap-3">
           <span className="font-semibold">2.</span>
+          <span className="text-gris">Escribe <strong className="text-tinta">BORRAR</strong> para confirmar:</span>
           <Entrada
+            aria-label="Escribe BORRAR para confirmar"
             value={texto}
             onChange={(e) => setTexto(e.target.value)}
-            placeholder="Escribe BORRAR"
             className="h-9 !w-44"
             disabled={!respaldado || !!paso}
           />
