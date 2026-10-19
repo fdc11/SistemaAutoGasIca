@@ -81,25 +81,19 @@ export default function Registrar() {
     datos.bloqueos.filter((b) => !b.eliminado && b.fecha === f.fechaCita && b.hora === hora && b.area === f.area).length * 2;
 
   const validar = () => {
+    // Ningún campo es obligatorio: se guarda con lo que se tenga.
+    // Solo se revisa que lo que SÍ se escribió tenga un formato válido.
     const e: Record<string, string> = {};
-    if (!f.nombre.trim()) e.nombre = 'Escribe el nombre del cliente.';
-    if (!f.areas.length) e.areas = 'Elige en qué área se atiende.';
-    if (!f.sinCelular && !celularValido(normalizarCelular(f.celular))) e.celular = 'El celular debe tener 9 dígitos y empezar en 9.';
+    const celEscrito = !f.sinCelular && f.celular.replace(/\D/g, '') !== '';
+    if (celEscrito && !celularValido(normalizarCelular(f.celular))) e.celular = 'El celular debe tener 9 dígitos y empezar en 9.';
     if (f.placa && !placaValida(normalizarPlaca(f.placa))) e.placa = 'La placa debe tener 6 letras o números.';
-    if (canal === 'publicidad' && !f.subcanal) e.subcanal = 'Elige de qué anuncio vino.';
-    if (canal === 'convenio' && !f.empresaId) e.empresaId = 'Elige la empresa del convenio.';
-    if (canal === 'presencial' && f.agendar) {
-      if (!placaValida(normalizarPlaca(f.placa))) e.placa = 'Para agendar la cita se necesita la placa.';
-      if (!f.horaCita) e.horaCita = 'Elige una hora disponible.';
-      if (!f.interes) e.interes = 'Elige el servicio.';
-    }
-    if (canal === 'llamada' && !f.resultado) e.resultado = 'Indica cómo terminó la llamada.';
+    if (!f.nombre.trim() && !celEscrito && !f.placa.trim()) e.nombre = 'Escribe al menos el nombre, el celular o la placa para poder ubicarlo después.';
     setErrores(e);
     return Object.keys(e).length === 0;
   };
 
   const estadoInicial = (): EstadoCliente => {
-    if (canal === 'presencial' && f.agendar) return 'cita';
+    if (canal === 'presencial' && f.agendar && f.horaCita) return 'cita';
     if (canal === 'llamada') {
       if (f.resultado === 'Interesado') return 'seguimiento';
       if (f.resultado === 'No contestó' || f.resultado === 'Volver a llamar') return 'nuevo';
@@ -132,7 +126,8 @@ export default function Registrar() {
         tipoInteraccion: canal === 'llamada' ? 'llamada' : canal === 'whatsapp' ? 'whatsapp' : canal === 'presencial' ? 'presencial' : 'nota',
         resultado: f.resultado || undefined,
       });
-      if (canal === 'presencial' && f.agendar) {
+      const conCita = canal === 'presencial' && f.agendar && !!f.horaCita;
+      if (conCita) {
         await crear('citas', {
           fecha: f.fechaCita,
           hora: f.horaCita,
@@ -141,14 +136,16 @@ export default function Registrar() {
           clienteId: r.clienteId,
           nombreCliente: f.nombre.trim() || undefined,
           celularCliente: normalizarCelular(f.celular) || undefined,
-          servicio: f.interes,
+          servicio: f.interes || 'Por definir',
           estado: 'agendada',
           agendadoPor: autor,
           notas: f.comentario || undefined,
         });
       }
-      avisar(r.nuevo ? `${f.nombre.trim()} quedó registrado.` : `Se agregó el contacto a la ficha de ${existente?.cliente?.nombre ?? f.nombre}.`);
-      setUltimo({ id: r.clienteId, nombre: f.nombre.trim() });
+      const quien = f.nombre.trim() || (f.placa ? normalizarPlaca(f.placa) : '') || formatoCelular(normalizarCelular(f.celular)) || 'Cliente sin nombre';
+      const sinHora = canal === 'presencial' && f.agendar && !f.horaCita ? ' No se agendó cita porque no elegiste hora.' : '';
+      avisar(r.nuevo ? `${quien} quedó registrado.${sinHora}` : `Se agregó el contacto a la ficha de ${existente?.cliente?.nombre || quien}.${sinHora}`);
+      setUltimo({ id: r.clienteId, nombre: quien });
       setF({ ...inicial, ciudad: f.ciudad, area: f.area, fechaCita: f.fechaCita, areas: f.areas });
       setErrores({});
     } catch (err: any) {
@@ -209,10 +206,10 @@ export default function Registrar() {
         <div className="space-y-5">
           <Panel titulo="Datos del cliente">
             <div className="grid gap-4 sm:grid-cols-2">
-              <Campo etiqueta="Nombre y apellido" requerido error={errores.nombre} className="sm:col-span-2">
+              <Campo etiqueta="Nombre y apellido" error={errores.nombre} className="sm:col-span-2">
                 <Entrada value={f.nombre} onChange={(e) => set('nombre', e.target.value)} invalido={!!errores.nombre} autoFocus />
               </Campo>
-              <Campo etiqueta="Celular" requerido={!f.sinCelular} error={errores.celular} ayuda="9 dígitos, sin +51">
+              <Campo etiqueta="Celular" error={errores.celular} ayuda="9 dígitos, sin +51">
                 <Entrada
                   inputMode="numeric"
                   value={f.celular}
@@ -237,7 +234,7 @@ export default function Registrar() {
                 />
                 El cliente no quiso dar su número
               </label>
-              <Grupo etiqueta="Área del taller" requerido error={errores.areas} className="sm:col-span-2" ayuda={errores.areas ? undefined : 'Puedes marcar más de una.'}>
+              <Grupo etiqueta="Área del taller" error={errores.areas} className="sm:col-span-2" ayuda={errores.areas ? undefined : 'Puedes marcar más de una.'}>
                 <SelectorAreas valor={f.areas} onCambio={(v) => set('areas', v)} invalido={!!errores.areas} />
               </Grupo>
             </div>
@@ -245,7 +242,7 @@ export default function Registrar() {
 
           <Panel titulo="Vehículo">
             <div className="grid gap-4 sm:grid-cols-4">
-              <Campo etiqueta="Placa" error={errores.placa} requerido={canal === 'presencial' && f.agendar}>
+              <Campo etiqueta="Placa" error={errores.placa}>
                 <Entrada
                   value={f.placa}
                   onChange={(e) => set('placa', e.target.value.toUpperCase())}
@@ -274,7 +271,7 @@ export default function Registrar() {
           <Panel titulo={`Detalle de ${nombreCanal(canal).toLowerCase()}`}>
             <div className="grid gap-4 sm:grid-cols-2">
               {canal === 'publicidad' && (
-                <Campo etiqueta="Anuncio de origen" requerido error={errores.subcanal}>
+                <Campo etiqueta="Anuncio de origen" error={errores.subcanal}>
                   <Selector value={f.subcanal} onChange={(e) => set('subcanal', e.target.value)} invalido={!!errores.subcanal}>
                     <option value="">Elegir</option>
                     {listas.subcanales.map((s) => (
@@ -284,7 +281,7 @@ export default function Registrar() {
                 </Campo>
               )}
               {canal === 'convenio' && (
-                <Campo etiqueta="Empresa" requerido error={errores.empresaId}>
+                <Campo etiqueta="Empresa" error={errores.empresaId}>
                   <Selector value={f.empresaId} onChange={(e) => set('empresaId', e.target.value)} invalido={!!errores.empresaId}>
                     <option value="">Elegir</option>
                     {empresas.map((e) => (
@@ -296,7 +293,7 @@ export default function Registrar() {
                 </Campo>
               )}
               {canal === 'llamada' && (
-                <Campo etiqueta="Resultado de la llamada" requerido error={errores.resultado}>
+                <Campo etiqueta="Resultado de la llamada" error={errores.resultado}>
                   <Selector value={f.resultado} onChange={(e) => set('resultado', e.target.value)} invalido={!!errores.resultado}>
                     <option value="">Elegir</option>
                     {RESULTADOS.map((s) => (
@@ -305,7 +302,7 @@ export default function Registrar() {
                   </Selector>
                 </Campo>
               )}
-              <Campo etiqueta={canal === 'presencial' ? 'Servicio' : 'Servicio de interés'} error={errores.interes} requerido={canal === 'presencial' && f.agendar}>
+              <Campo etiqueta={canal === 'presencial' ? 'Servicio' : 'Servicio de interés'} error={errores.interes}>
                 <Selector value={f.interes} onChange={(e) => set('interes', e.target.value)} invalido={!!errores.interes}>
                   <option value="">Elegir</option>
                   {servicios.map((s) => (
@@ -367,7 +364,7 @@ export default function Registrar() {
                   </div>
                   <div>
                     <p className="mb-2 text-[13px] font-medium text-tinta">
-                      Hora<span className="ml-0.5 text-rojo">*</span>
+                      Hora <span className="font-normal text-gris">(si no eliges, solo se registra al cliente)</span>
                     </p>
                     <div className="grid grid-cols-3 gap-2 sm:grid-cols-5 lg:grid-cols-9">
                       {horas.map((h) => {

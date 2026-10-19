@@ -150,7 +150,7 @@ export default function FichaCliente() {
         acciones={
           <>
             {cliente.celular && (
-              <a href={enlaceWhatsApp(cliente.celular, `Hola ${cliente.nombre.split(' ')[0]}, te escribimos de AutoGas Ica.`)} target="_blank" rel="noreferrer">
+              <a href={enlaceWhatsApp(cliente.celular, `Hola${cliente.nombre ? ' ' + cliente.nombre.split(' ')[0] : ''}, te escribimos de AutoGas Ica.`)} target="_blank" rel="noreferrer">
                 <Boton variante="secundario" icono={<MessageCircle className="h-4 w-4 text-ok" />}>
                   WhatsApp
                 </Boton>
@@ -380,13 +380,13 @@ export default function FichaCliente() {
       <Confirmar
         abierto={borrar}
         titulo="Eliminar cliente"
-        texto={`${cliente.nombre} pasará a la papelera. Puedes restaurarlo desde Ajustes durante 30 días.`}
+        texto={`${cliente.nombre || 'Este cliente'} pasará a la papelera. Puedes restaurarlo desde Ajustes durante 30 días.`}
         accion="Eliminar"
         peligro
         onCerrar={() => setBorrar(false)}
         onConfirmar={async () => {
           await eliminar('clientes', cliente.id);
-          avisar(`${cliente.nombre} se envió a la papelera.`);
+          avisar(`${cliente.nombre || 'El cliente'} se envió a la papelera.`);
           navigate('/clientes');
         }}
       />
@@ -402,7 +402,6 @@ function EditarCliente({ cliente, onCerrar }: { cliente: Cliente; onCerrar: () =
   const [error, setError] = useState('');
   const guardar = async () => {
     const cel = normalizarCelular(f.celular);
-    if (!f.nombre.trim()) return setError('El nombre no puede quedar vacío.');
     if (f.celular && !celularValido(cel)) return setError('El celular debe tener 9 dígitos y empezar en 9.');
     await editar('clientes', cliente.id, {
       nombre: f.nombre.trim(),

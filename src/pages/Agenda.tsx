@@ -38,11 +38,14 @@ const nombreVisible = (c?: Cliente) => (c && !esNombreRelleno(c.nombre) ? c.nomb
 
 const fechaTexto = (iso: string) => format(parseISO(iso), "EEEE d 'de' MMMM", { locale: es });
 
+/** « de cambio de aceite» o nada si el servicio aún no se definió. */
+const deServicio = (s?: string) => (s && !/^por definir$/i.test(s.trim()) ? ` de ${s.toLowerCase()}` : '');
+
 function mensajeConfirmacion(cita: Pick<Cita, 'fecha' | 'hora' | 'servicio' | 'placa'>, nombre?: string) {
   const primer = nombre && !esNombreRelleno(nombre) ? ' ' + nombre.trim().split(' ')[0] : '';
   return (
     `Hola${primer}, te saludamos de AutoGas Ica. ` +
-    `Tu cita de ${cita.servicio.toLowerCase()} quedó agendada para el ${fechaTexto(cita.fecha)} a las ${cita.hora}` +
+    `Tu cita${deServicio(cita.servicio)} quedó agendada para el ${fechaTexto(cita.fecha)} a las ${cita.hora}` +
     `${cita.placa ? ` (vehículo de placa ${cita.placa})` : ''}. ` +
     'Un día antes te escribimos para recordártela. ¡Gracias por confiar en nosotros!'
   );
@@ -85,7 +88,7 @@ function mensajeRecordatorio(cita: Cita, cliente?: Cliente) {
     : `el ${format(parseISO(cita.fecha), "EEEE d 'de' MMMM", { locale: es })}`;
   return (
     `Hola${nombre ? ' ' + nombre : ''}, te saludamos de AutoGas Ica. ` +
-    `Te recordamos tu cita de ${cita.servicio.toLowerCase()} ${dia} a las ${cita.hora}` +
+    `Te recordamos tu cita${deServicio(cita.servicio)} ${dia} a las ${cita.hora}` +
     `${cita.placa ? ` para tu vehículo de placa ${cita.placa}` : ''}. ` +
     'Si no puedes venir, respóndenos por aquí y la reprogramamos. ¡Te esperamos!'
   );
@@ -248,7 +251,7 @@ export default function Agenda() {
           return (
             <div key={c.id} className={cx('group/cita relative rounded-md border transition-colors hover:border-tinta/40', TONO_CITA[c.estado])}>
               <button type="button" onClick={() => setAbierta(c)} className="block w-full px-2 pb-1.5 pt-1.5 text-left">
-                <span className="block truncate text-[13px] font-semibold leading-tight text-tinta">{nombre ?? <span className="font-display text-[15px] tracking-wide num">{c.placa || 'Sin placa'}</span>}</span>
+                <span className="block truncate text-[13px] font-semibold leading-tight text-tinta">{nombre ?? <span className="font-display text-[15px] tracking-wide num">{c.placa || (cliente?.celular ? formatoCelular(cliente.celular) : 'Sin datos')}</span>}</span>
                 <span className="mt-0.5 block truncate text-xs text-tinta/80">
                   {nombre && c.placa && <span className="font-display font-semibold tracking-wide num">{c.placa} · </span>}
                   {c.servicio}
@@ -663,7 +666,7 @@ function NuevaCita({ hueco, onCerrar }: { hueco: Hueco; onCerrar: () => void }) 
   const [celular, setCelular] = useState('');
   const [placa, setPlaca] = useState('');
   const [canal, setCanal] = useState<Canal>('whatsapp');
-  const [servicio, setServicio] = useState('');
+  const [servicioElegido, setServicio] = useState('');
   const [notas, setNotas] = useState('');
   const [motivo, setMotivo] = useState('');
   const [agendadoPor, setAgendadoPor] = useState(autor);
@@ -717,11 +720,11 @@ function NuevaCita({ hueco, onCerrar }: { hueco: Hueco; onCerrar: () => void }) 
       avisar('Cupo bloqueado.');
       return onCerrar();
     }
-    if (!elegido && !nombre.trim()) return setError('Escribe el nombre del cliente.');
+    // Ningún campo es obligatorio; solo se revisa el formato de lo que sí se escribió.
     if (celEscrito && !celularValido(cel)) return setError('El celular debe tener 9 dígitos y empezar en 9.');
     if (placa && !placaValida(p)) return setError('La placa debe tener 6 caracteres (letras y números).');
-    if (!cel && !p) return setError('Pon al menos el celular o la placa para poder ubicar al cliente.');
-    if (!servicio) return setError('Elige el servicio.');
+    if (!elegido && !nombre.trim() && !cel && !p) return setError('Escribe al menos el nombre, el celular o la placa para saber de quién es la cita.');
+    const servicio = servicioElegido || 'Por definir';
 
     setGuardando(true);
     try {
@@ -756,7 +759,7 @@ function NuevaCita({ hueco, onCerrar }: { hueco: Hueco; onCerrar: () => void }) 
           celular: cel,
           canal,
           placa: p || undefined,
-          interes: servicio,
+          interes: servicioElegido || undefined,
           estado: 'cita',
           tipoInteraccion: canal === 'llamada' || canal === 'whatsapp' || canal === 'presencial' ? canal : 'nota',
           comentario: detalle,
@@ -782,7 +785,7 @@ function NuevaCita({ hueco, onCerrar }: { hueco: Hueco; onCerrar: () => void }) 
         agendadoPor,
       };
       const id = await crear('citas', nueva);
-      avisar(`Cita agendada para ${nombreFinal || p} a las ${hueco.hora}.`);
+      avisar(`Cita agendada para ${nombreFinal || p || formatoCelular(cel) || 'cliente sin nombre'} a las ${hueco.hora}.`);
       setHecho({ cita: { ...(nueva as Cita), id }, nombre: nombreFinal, celular: cel || elegido?.celular || '' });
     } catch (e) {
       setError('No se pudo guardar. Revisa la conexión e inténtalo otra vez.');
@@ -920,7 +923,7 @@ function NuevaCita({ hueco, onCerrar }: { hueco: Hueco; onCerrar: () => void }) 
           )}
 
           <div className="grid gap-4 sm:grid-cols-2">
-            <Campo etiqueta="Nombre del cliente" requerido={!elegido} className="sm:col-span-2">
+            <Campo etiqueta="Nombre del cliente" className="sm:col-span-2">
               <Entrada
                 value={nombre}
                 onChange={(e) => setNombre(e.target.value)}
@@ -990,8 +993,8 @@ function NuevaCita({ hueco, onCerrar }: { hueco: Hueco; onCerrar: () => void }) 
           )}
 
           <div className="grid gap-4 sm:grid-cols-2">
-            <Campo etiqueta="Servicio" requerido>
-              <Selector value={servicio} onChange={(e) => setServicio(e.target.value)}>
+            <Campo etiqueta="Servicio">
+              <Selector value={servicioElegido} onChange={(e) => setServicio(e.target.value)}>
                 <option value="">Elegir</option>
                 {listas.servicios.map((s) => (
                   <option key={s}>{s}</option>
