@@ -9,6 +9,7 @@ import { celularValido, cx, formatoCelular, hoyISO, normalizarCelular, normaliza
 import { AreaTexto, Boton, Campo, Grupo, Encabezado, Entrada, Etiqueta, Panel, Selector, useAvisos } from '../components/ui';
 import { parseISO, getDay } from 'date-fns';
 import { SelectorAreas } from '../components/SelectorAreas';
+import { CampoDni } from '../components/CampoDni';
 
 const ICONOS: Record<Canal, JSX.Element> = {
   presencial: <Store />,
@@ -23,6 +24,7 @@ const RESULTADOS = ['Contestó', 'No contestó', 'Volver a llamar', 'Interesado'
 
 const inicial = {
   nombre: '',
+  dni: '',
   celular: '',
   sinCelular: false,
   ciudad: 'Ica',
@@ -63,10 +65,11 @@ export default function Registrar() {
   const existente = useMemo(() => {
     const cel = normalizarCelular(f.celular);
     const pla = normalizarPlaca(f.placa);
-    if (!cel && !placaValida(pla)) return null;
-    const r = buscarExistente(cel, placaValida(pla) ? pla : undefined);
+    const dni = f.dni.length === 8 ? f.dni : undefined;
+    if (!cel && !placaValida(pla) && !dni) return null;
+    const r = buscarExistente(cel, placaValida(pla) ? pla : undefined, dni);
     return r.cliente || r.vehiculo ? r : null;
-  }, [f.celular, f.placa, datos.clientes, datos.vehiculos]); // eslint-disable-line
+  }, [f.celular, f.placa, f.dni, datos.clientes, datos.vehiculos]); // eslint-disable-line
 
   const filtroSugerido = useMemo(() => {
     if (!f.marca || !f.modelo) return null;
@@ -87,7 +90,8 @@ export default function Registrar() {
     const celEscrito = !f.sinCelular && f.celular.replace(/\D/g, '') !== '';
     if (celEscrito && !celularValido(normalizarCelular(f.celular))) e.celular = 'El celular debe tener 9 dígitos y empezar en 9.';
     if (f.placa && !placaValida(normalizarPlaca(f.placa))) e.placa = 'La placa debe tener 6 letras o números.';
-    if (!f.nombre.trim() && !celEscrito && !f.placa.trim()) e.nombre = 'Escribe al menos el nombre, el celular o la placa para poder ubicarlo después.';
+    if (f.dni && f.dni.length !== 8) e.dni = 'El DNI debe tener 8 dígitos.';
+    if (!f.nombre.trim() && !celEscrito && !f.placa.trim() && !f.dni) e.nombre = 'Escribe al menos el nombre, el celular o la placa para poder ubicarlo después.';
     setErrores(e);
     return Object.keys(e).length === 0;
   };
@@ -108,6 +112,7 @@ export default function Registrar() {
     try {
       const r = await registrar({
         nombre: f.nombre,
+        dni: f.dni || undefined,
         celular: f.sinCelular ? '' : f.celular,
         ciudad: f.ciudad,
         canal,
@@ -142,7 +147,7 @@ export default function Registrar() {
           notas: f.comentario || undefined,
         });
       }
-      const quien = f.nombre.trim() || (f.placa ? normalizarPlaca(f.placa) : '') || formatoCelular(normalizarCelular(f.celular)) || 'Cliente sin nombre';
+      const quien = f.nombre.trim() || (f.placa ? normalizarPlaca(f.placa) : '') || (normalizarCelular(f.celular) ? formatoCelular(normalizarCelular(f.celular)) : '') || (f.dni ? `DNI ${f.dni}` : '') || 'Cliente sin nombre';
       const sinHora = canal === 'presencial' && f.agendar && !f.horaCita ? ' No se agendó cita porque no elegiste hora.' : '';
       avisar(r.nuevo ? `${quien} quedó registrado.${sinHora}` : `Se agregó el contacto a la ficha de ${existente?.cliente?.nombre || quien}.${sinHora}`);
       setUltimo({ id: r.clienteId, nombre: quien });
@@ -206,7 +211,8 @@ export default function Registrar() {
         <div className="space-y-5">
           <Panel titulo="Datos del cliente">
             <div className="grid gap-4 sm:grid-cols-2">
-              <Campo etiqueta="Nombre y apellido" error={errores.nombre} className="sm:col-span-2">
+              <CampoDni valor={f.dni} onCambio={(v) => set('dni', v)} nombreActual={f.nombre} onNombre={(n) => set('nombre', n)} error={errores.dni} />
+              <Campo etiqueta="Nombre y apellido" error={errores.nombre}>
                 <Entrada value={f.nombre} onChange={(e) => set('nombre', e.target.value)} invalido={!!errores.nombre} autoFocus />
               </Campo>
               <Campo etiqueta="Celular" error={errores.celular} ayuda="9 dígitos, sin +51">

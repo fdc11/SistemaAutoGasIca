@@ -2,6 +2,7 @@ import { useMemo, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import { MessageCircle, Pencil, Trash2, Phone, Plus, StickyNote, ArrowRightLeft, Store, Car } from 'lucide-react';
 import { SelectorAreas } from '../components/SelectorAreas';
+import { CampoDni } from '../components/CampoDni';
 import { useDatos, useActivos } from '../data/store';
 import { useAcciones } from '../data/acciones';
 import { CANALES, ESTADOS, ESTADOS_CITA, estadoInfo, nombreArea, nombreCanal } from '../lib/catalogos';
@@ -170,6 +171,7 @@ export default function FichaCliente() {
         <div className="space-y-5">
           <Panel titulo="Datos del cliente" acciones={<Etiqueta tono={e.tono}>{e.nombre}</Etiqueta>}>
             <dl className="grid gap-x-6 gap-y-4 sm:grid-cols-2 lg:grid-cols-4">
+              <Dato etiqueta="DNI">{cliente.dni && <span className="num">{cliente.dni}</span>}</Dato>
               <Dato etiqueta="Celular">
                 <span className="num">{formatoCelular(cliente.celular)}</span>
               </Dato>
@@ -398,13 +400,15 @@ function EditarCliente({ cliente, onCerrar }: { cliente: Cliente; onCerrar: () =
   const { editar, listas } = useDatos();
   const empresas = useActivos('empresas');
   const avisar = useAvisos();
-  const [f, setF] = useState({ ...cliente });
+  const [f, setF] = useState({ ...cliente, dni: cliente.dni ?? '' });
   const [error, setError] = useState('');
   const guardar = async () => {
     const cel = normalizarCelular(f.celular);
     if (f.celular && !celularValido(cel)) return setError('El celular debe tener 9 dígitos y empezar en 9.');
+    if (f.dni && f.dni.length !== 8) return setError('El DNI debe tener 8 dígitos.');
     await editar('clientes', cliente.id, {
       nombre: f.nombre.trim(),
+      dni: f.dni,
       celular: cel,
       ciudad: f.ciudad,
       canal: f.canal,
@@ -433,7 +437,8 @@ function EditarCliente({ cliente, onCerrar }: { cliente: Cliente; onCerrar: () =
       }
     >
       <div className="grid gap-4 sm:grid-cols-2">
-        <Campo etiqueta="Nombre y apellido" className="sm:col-span-2">
+        <CampoDni valor={f.dni} onCambio={(v) => setF((x) => ({ ...x, dni: v }))} nombreActual={f.nombre} onNombre={(n) => setF((x) => ({ ...x, nombre: n }))} />
+        <Campo etiqueta="Nombre y apellido">
           <Entrada value={f.nombre} onChange={(e) => setF({ ...f, nombre: e.target.value })} />
         </Campo>
         <Campo etiqueta="Celular">

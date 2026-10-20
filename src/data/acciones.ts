@@ -2,11 +2,12 @@
 import { useDatos } from './store';
 import { useAuth } from './auth';
 import type { Canal, Cliente, EstadoCliente, Vehiculo } from '../lib/types';
-import { ahoraISO, hoyISO, normalizarCelular, normalizarPlaca } from '../lib/utils';
+import { ahoraISO, esNombreRelleno, hoyISO, normalizarCelular, normalizarPlaca } from '../lib/utils';
 import { estadoInfo } from '../lib/catalogos';
 
 export interface DatosRegistro {
   nombre: string;
+  dni?: string;
   celular: string;
   ciudad?: string;
   canal: Canal;
@@ -31,11 +32,13 @@ export function useAcciones() {
   const { usuario } = useAuth();
 
   /** Busca un cliente o vehículo ya registrado por celular o placa. */
-  const buscarExistente = (celular?: string, placa?: string) => {
+  const buscarExistente = (celular?: string, placa?: string, dni?: string) => {
     const cel = normalizarCelular(celular);
     const pla = normalizarPlaca(placa);
+    const doc = /^\d{8}$/.test(dni ?? '') ? dni : undefined;
     const vehiculo = pla ? datos.vehiculos.find((v) => v.placa === pla && !v.eliminado) : undefined;
-    let cliente = cel ? datos.clientes.find((c) => c.celular === cel && !c.eliminado) : undefined;
+    let cliente = doc ? datos.clientes.find((c) => c.dni === doc && !c.eliminado) : undefined;
+    if (!cliente && cel) cliente = datos.clientes.find((c) => c.celular === cel && !c.eliminado);
     if (!cliente && vehiculo?.clienteId) cliente = datos.clientes.find((c) => c.id === vehiculo.clienteId && !c.eliminado);
     return { cliente, vehiculo };
   };
@@ -44,13 +47,15 @@ export function useAcciones() {
   const registrar = async (d: DatosRegistro): Promise<{ clienteId: string; vehiculoId?: string; nuevo: boolean }> => {
     const celular = normalizarCelular(d.celular);
     const placa = normalizarPlaca(d.placa);
-    const { cliente, vehiculo } = buscarExistente(celular, placa);
+    const dni = /^\d{8}$/.test(d.dni ?? '') ? d.dni : undefined;
+    const { cliente, vehiculo } = buscarExistente(celular, placa, dni);
     let clienteId = cliente?.id;
     const nuevo = !cliente;
 
     if (!clienteId) {
       clienteId = await crear('clientes', {
         nombre: d.nombre.trim(),
+        dni,
         celular,
         ciudad: d.ciudad,
         canal: d.canal,
@@ -69,6 +74,8 @@ export function useAcciones() {
       if (d.proximoContacto) patch.proximoContacto = d.proximoContacto;
       if (d.estado && d.estado !== cliente!.estado) patch.estado = d.estado;
       if (!cliente!.celular && celular) patch.celular = celular;
+      if (!cliente!.dni && dni) patch.dni = dni;
+      if (d.nombre.trim() && esNombreRelleno(cliente!.nombre)) patch.nombre = d.nombre.trim();
       const nuevas = (d.areas ?? []).filter((a) => !(cliente!.areas ?? []).includes(a));
       if (nuevas.length) patch.areas = [...(cliente!.areas ?? []), ...nuevas];
       if (Object.keys(patch).length) await editar('clientes', clienteId, patch);

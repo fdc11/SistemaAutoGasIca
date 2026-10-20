@@ -44,7 +44,7 @@ export default function Clientes() {
       if (hasta && c.fechaContacto > hasta) return false;
       if (t) {
         const placas = (placasDe.get(c.id) ?? []).join(' ');
-        const hay = plano(c.nombre).replace(/\s+/g, '') + ' ' + c.celular + ' ' + plano(placas) + ' ' + plano(c.interes);
+        const hay = plano(c.nombre).replace(/\s+/g, '') + ' ' + c.celular + ' ' + (c.dni ?? '') + ' ' + plano(placas) + ' ' + plano(c.interes);
         if (!hay.includes(t)) return false;
       }
       return true;
@@ -74,6 +74,7 @@ export default function Clientes() {
   const filasLista = () =>
     lista.map((c) => ({
       Nombre: c.nombre,
+      DNI: c.dni ?? '',
       Celular: c.celular,
       Ciudad: c.ciudad ?? '',
       Área: (c.areas ?? []).join(', '),
@@ -98,7 +99,7 @@ export default function Clientes() {
     <>
       <Encabezado
         titulo="Base de clientes"
-        descripcion="Todos los clientes de todos los canales. Busca por nombre, celular o placa."
+        descripcion="Todos los clientes de todos los canales. Busca por nombre, DNI, celular o placa."
         acciones={
           <>
             <BotonesExcel
@@ -144,7 +145,7 @@ export default function Clientes() {
           ))}
         </div>
         <div className="grid gap-3 border-b border-linea p-4 md:grid-cols-[minmax(0,2fr)_repeat(4,minmax(0,1fr))]">
-          <Buscador valor={q} onCambio={(v) => { setQ(v); setPagina(1); }} placeholder="Nombre, celular o placa" />
+          <Buscador valor={q} onCambio={(v) => { setQ(v); setPagina(1); }} placeholder="Nombre, DNI, celular o placa" />
           <Selector value={canal} onChange={(e) => { setCanal(e.target.value); setPagina(1); }} aria-label="Canal">
             <option value="">Todos los canales</option>
             {CANALES.map((c) => (
@@ -208,7 +209,7 @@ export default function Clientes() {
                     <tr key={c.id} onClick={() => navigate(`/clientes/${c.id}`)} className="cursor-pointer hover:bg-[#FAFAFB]">
                       <Td>
                         <p className="font-semibold">{c.nombre || 'Sin nombre'}</p>
-                        <p className="text-[13px] text-gris num">{formatoCelular(c.celular)}</p>
+                        <p className="text-[13px] text-gris num">{[c.celular && formatoCelular(c.celular), c.dni && `DNI ${c.dni}`].filter(Boolean).join(' · ')}</p>
                         {!!c.areas?.length && (
                           <p className="mt-1 flex flex-wrap gap-1">
                             {c.areas.map((a) => (

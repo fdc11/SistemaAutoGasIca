@@ -27,6 +27,7 @@ export interface Base {
 
 export interface Cliente extends Base {
   nombre: string;
+  dni?: string; // 8 dígitos, opcional
   celular: string; // 9 dígitos, vacío si no lo dio
   ciudad?: string;
   canal: Canal;

@@ -2,7 +2,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { addDays, differenceInCalendarDays, format, getDay, parseISO, startOfWeek } from 'date-fns';
 import { es } from 'date-fns/locale';
-import { AlertTriangle, Bell, Check, ChevronLeft, ChevronRight, Lock, MessageCircle, Phone, Plus, Search, UserCheck, X } from 'lucide-react';
+import { AlertTriangle, Bell, Check, ChevronLeft, ChevronRight, Lock, MessageCircle, Pencil, Phone, Plus, Search, UserCheck, X } from 'lucide-react';
 import { useDatos, useActivos } from '../data/store';
 import { useAcciones } from '../data/acciones';
 import { AREAS, CANALES, CUPOS_POR_HORA, ESTADOS_CITA, HORAS_SABADO, HORAS_SEMANA, nombreArea } from '../lib/catalogos';
@@ -10,6 +10,7 @@ import type { Area, Bloqueo, Canal, Cita, Cliente, EstadoCita, Nuevo, Vehiculo }
 import { ahoraISO, celularValido, cx, enlaceWhatsApp, formatoCelular, hoyISO, normalizarCelular, normalizarPlaca, placaValida, plano } from '../lib/utils';
 import { AreaTexto, Boton, BotonIcono, Campo, Grupo, Encabezado, Entrada, Etiqueta, Modal, Panel, Pestanas, Selector, useAvisos } from '../components/ui';
 import { BotonesExcel } from '../components/BotonesExcel';
+import { CampoDni } from '../components/CampoDni';
 
 type Vista = 'semana' | 'dia';
 type Hueco = { fecha: string; hora: string; area: Area };
@@ -663,6 +664,7 @@ function NuevaCita({ hueco, onCerrar }: { hueco: Hueco; onCerrar: () => void }) 
   const [busqueda, setBusqueda] = useState('');
   const [elegido, setElegido] = useState<Cliente | null>(null);
   const [nombre, setNombre] = useState('');
+  const [dni, setDni] = useState('');
   const [celular, setCelular] = useState('');
   const [placa, setPlaca] = useState('');
   const [canal, setCanal] = useState<Canal>('whatsapp');
@@ -683,9 +685,9 @@ function NuevaCita({ hueco, onCerrar }: { hueco: Hueco; onCerrar: () => void }) 
   // Si escriben a mano un celular o placa que ya existe, se ofrece usar ese cliente (evita duplicados).
   const yaExiste = useMemo(() => {
     if (elegido) return undefined;
-    const { cliente } = buscarExistente(celularValido(cel) ? cel : undefined, placaValida(p) ? p : undefined);
+    const { cliente } = buscarExistente(celularValido(cel) ? cel : undefined, placaValida(p) ? p : undefined, dni.length === 8 ? dni : undefined);
     return cliente;
-  }, [elegido, cel, p]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [elegido, cel, p, dni]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Otra cita pendiente del mismo vehículo o cliente (para no agendarlo dos veces).
   const otraCita = useMemo(() => {
@@ -700,6 +702,7 @@ function NuevaCita({ hueco, onCerrar }: { hueco: Hueco; onCerrar: () => void }) 
     const placas = placasDe.get(c.id) ?? [];
     setElegido(c);
     setNombre(esNombreRelleno(c.nombre) ? '' : c.nombre);
+    setDni(c.dni ?? '');
     setCelular(c.celular ?? '');
     setPlaca(placas.length === 1 ? placas[0] : '');
     setBusqueda('');
@@ -708,6 +711,7 @@ function NuevaCita({ hueco, onCerrar }: { hueco: Hueco; onCerrar: () => void }) 
   const soltar = () => {
     setElegido(null);
     setNombre('');
+    setDni('');
     setCelular('');
     setPlaca('');
   };
@@ -723,7 +727,8 @@ function NuevaCita({ hueco, onCerrar }: { hueco: Hueco; onCerrar: () => void }) 
     // Ningún campo es obligatorio; solo se revisa el formato de lo que sí se escribió.
     if (celEscrito && !celularValido(cel)) return setError('El celular debe tener 9 dígitos y empezar en 9.');
     if (placa && !placaValida(p)) return setError('La placa debe tener 6 caracteres (letras y números).');
-    if (!elegido && !nombre.trim() && !cel && !p) return setError('Escribe al menos el nombre, el celular o la placa para saber de quién es la cita.');
+    if (dni && dni.length !== 8) return setError('El DNI debe tener 8 dígitos.');
+    if (!elegido && !nombre.trim() && !cel && !p && !dni) return setError('Escribe al menos el nombre, el celular o la placa para saber de quién es la cita.');
     const servicio = servicioElegido || 'Por definir';
 
     setGuardando(true);
@@ -739,6 +744,7 @@ function NuevaCita({ hueco, onCerrar }: { hueco: Hueco; onCerrar: () => void }) 
         if (ar && !(elegido.areas ?? []).includes(ar)) patch.areas = [...(elegido.areas ?? []), ar];
         if (nombreFinal && nombreFinal !== elegido.nombre) patch.nombre = nombreFinal;
         if (cel && cel !== elegido.celular) patch.celular = cel;
+        if (dni && dni !== elegido.dni) patch.dni = dni;
         await editar('clientes', clienteId, patch);
         if (!nombreFinal) nombreFinal = elegido.nombre;
         if (p) {
@@ -756,6 +762,7 @@ function NuevaCita({ hueco, onCerrar }: { hueco: Hueco; onCerrar: () => void }) 
         // Cliente nuevo: queda guardado en la base de clientes con su vehículo y su historial.
         const r = await registrar({
           nombre: nombreFinal,
+          dni: dni || undefined,
           celular: cel,
           canal,
           placa: p || undefined,
@@ -785,7 +792,7 @@ function NuevaCita({ hueco, onCerrar }: { hueco: Hueco; onCerrar: () => void }) 
         agendadoPor,
       };
       const id = await crear('citas', nueva);
-      avisar(`Cita agendada para ${nombreFinal || p || formatoCelular(cel) || 'cliente sin nombre'} a las ${hueco.hora}.`);
+      avisar(`Cita agendada para ${nombreFinal || p || (cel ? formatoCelular(cel) : '') || 'cliente sin nombre'} a las ${hueco.hora}.`);
       setHecho({ cita: { ...(nueva as Cita), id }, nombre: nombreFinal, celular: cel || elegido?.celular || '' });
     } catch (e) {
       setError('No se pudo guardar. Revisa la conexión e inténtalo otra vez.');
@@ -923,7 +930,8 @@ function NuevaCita({ hueco, onCerrar }: { hueco: Hueco; onCerrar: () => void }) 
           )}
 
           <div className="grid gap-4 sm:grid-cols-2">
-            <Campo etiqueta="Nombre del cliente" className="sm:col-span-2">
+            <CampoDni valor={dni} onCambio={setDni} nombreActual={nombre} onNombre={setNombre} key={elegido?.id ?? 'nuevo'} />
+            <Campo etiqueta="Nombre del cliente">
               <Entrada
                 value={nombre}
                 onChange={(e) => setNombre(e.target.value)}
@@ -1096,6 +1104,174 @@ function CompletarCliente({ cita, cliente: recibido }: { cita: Cita; cliente?: C
   );
 }
 
+/** Edita todos los datos de una cita ya guardada (y los del cliente vinculado). */
+function EditarCita({ cita, cliente, onListo, onCancelar }: { cita: Cita; cliente?: Cliente; onListo: () => void; onCancelar: () => void }) {
+  const { crear, editar, datos, listas } = useDatos();
+  const { registrar } = useAcciones();
+  const avisar = useAvisos();
+  const real = cliente?.id ? cliente : undefined; // ficha real (no la copia guardada en la cita)
+  const [nombre, setNombre] = useState(nombreVisible(cliente) ?? '');
+  const [dni, setDni] = useState(real?.dni ?? '');
+  const [celular, setCelular] = useState(cliente?.celular ?? '');
+  const [placa, setPlaca] = useState(cita.placa ?? '');
+  const [servicio, setServicio] = useState(/^por definir$/i.test(cita.servicio ?? '') ? '' : cita.servicio ?? '');
+  const [area, setArea] = useState<Area>(cita.area);
+  const [fecha, setFecha] = useState(cita.fecha);
+  const [hora, setHora] = useState(cita.hora);
+  const [agendadoPor, setAgendadoPor] = useState(cita.agendadoPor ?? '');
+  const [notas, setNotas] = useState(cita.notas ?? '');
+  const [error, setError] = useState('');
+  const [guardando, setGuardando] = useState(false);
+
+  const cel = normalizarCelular(celular);
+  const celEscrito = celular.replace(/\D/g, '');
+  const p = normalizarPlaca(placa);
+  const dia = getDay(parseISO(fecha));
+  const horas = dia === 6 ? HORAS_SABADO : dia === 0 ? [] : HORAS_SEMANA;
+  const opcionesHora = horas.includes(hora) || !hora ? horas : [hora, ...horas];
+  const servicios = servicio && !listas.servicios.includes(servicio) ? [servicio, ...listas.servicios] : listas.servicios;
+
+  const guardar = async () => {
+    setError('');
+    if (celEscrito && !celularValido(cel)) return setError('El celular debe tener 9 dígitos y empezar en 9.');
+    if (placa && !placaValida(p)) return setError('La placa debe tener 6 caracteres (letras y números).');
+    if (dni && dni.length !== 8) return setError('El DNI debe tener 8 dígitos.');
+    if (!fecha || !hora) return setError('Elige la fecha y la hora.');
+    if (dia === 0) return setError('El taller no atiende los domingos.');
+    const cambioHueco = fecha !== cita.fecha || hora !== cita.hora || area !== cita.area;
+    if (cambioHueco) {
+      const ocupados = datos.citas.filter(
+        (c) => !c.eliminado && c.id !== cita.id && c.fecha === fecha && c.hora === hora && c.area === area && c.estado !== 'cancelada',
+      ).length;
+      const bloqueado = datos.bloqueos.some((b) => !b.eliminado && b.fecha === fecha && b.hora === hora && b.area === area);
+      if (bloqueado) return setError('Ese horario está bloqueado.');
+      if (ocupados >= CUPOS_POR_HORA) return setError('Ese horario ya tiene los dos cupos ocupados.');
+    }
+
+    setGuardando(true);
+    try {
+      const servicioFinal = servicio || 'Por definir';
+      let clienteId = real?.id;
+      if (real) {
+        const patch: Partial<Cliente> = {};
+        if (nombre.trim() !== (nombreVisible(real) ?? '')) patch.nombre = nombre.trim();
+        if (cel !== (real.celular ?? '')) patch.celular = cel;
+        if (dni !== (real.dni ?? '')) patch.dni = dni;
+        if (Object.keys(patch).length) await editar('clientes', real.id, patch);
+      } else if (nombre.trim() || cel || dni || p) {
+        // La cita no tenía ficha: se crea (o se vincula a la que ya exista con ese DNI, celular o placa).
+        const r = await registrar({
+          nombre: nombre.trim(),
+          dni: dni || undefined,
+          celular: cel,
+          canal: 'presencial',
+          placa: p || undefined,
+          interes: servicio || undefined,
+          estado: 'cita',
+          comentario: `Datos completados desde la cita del ${fechaTexto(fecha)}.`,
+        });
+        clienteId = r.clienteId;
+      }
+      if (p && p !== cita.placa) {
+        const v = datos.vehiculos.find((x) => x.placa === p && !x.eliminado);
+        if (!v) await crear('vehiculos', { placa: p, clienteId });
+        else if (!v.clienteId && clienteId) await editar('vehiculos', v.id, { clienteId });
+      }
+      await editar('citas', cita.id, {
+        fecha,
+        hora,
+        area,
+        placa: p,
+        servicio: servicioFinal,
+        agendadoPor: agendadoPor || cita.agendadoPor,
+        notas: notas.trim(),
+        clienteId,
+        nombreCliente: nombre.trim(),
+        celularCliente: cel,
+      });
+      avisar('Cita actualizada.');
+      onListo();
+    } catch (e) {
+      console.error(e);
+      setError('No se pudo guardar. Revisa la conexión e inténtalo otra vez.');
+    } finally {
+      setGuardando(false);
+    }
+  };
+
+  return (
+    <Modal
+      abierto
+      onCerrar={onCancelar}
+      titulo="Editar cita"
+      descripcion="Cambia lo que necesites. Ningún campo es obligatorio."
+      pie={
+        <>
+          <Boton variante="secundario" onClick={onCancelar}>
+            Cancelar
+          </Boton>
+          <Boton onClick={guardar} disabled={guardando}>
+            {guardando ? 'Guardando…' : 'Guardar cambios'}
+          </Boton>
+        </>
+      }
+    >
+      <div className="space-y-4">
+        <div className="grid gap-4 sm:grid-cols-2">
+          <CampoDni valor={dni} onCambio={setDni} nombreActual={nombre} onNombre={setNombre} />
+          <Campo etiqueta="Nombre del cliente">
+            <Entrada value={nombre} onChange={(e) => setNombre(e.target.value)} />
+          </Campo>
+          <Campo etiqueta="Celular">
+            <Entrada value={celular} onChange={(e) => setCelular(e.target.value)} inputMode="tel" invalido={!!celEscrito && !celularValido(cel)} />
+          </Campo>
+          <Campo etiqueta="Placa">
+            <Entrada value={placa} onChange={(e) => setPlaca(e.target.value.toUpperCase())} invalido={!!placa && !placaValida(p)} />
+          </Campo>
+          <Campo etiqueta="Servicio">
+            <Selector value={servicio} onChange={(e) => setServicio(e.target.value)}>
+              <option value="">Por definir</option>
+              {servicios.map((x) => (
+                <option key={x}>{x}</option>
+              ))}
+            </Selector>
+          </Campo>
+          <Campo etiqueta="Área">
+            <Selector value={area} onChange={(e) => setArea(e.target.value as Area)}>
+              {AREAS.map((a) => (
+                <option key={a.id} value={a.id}>
+                  {a.nombre}
+                </option>
+              ))}
+            </Selector>
+          </Campo>
+          <Campo etiqueta="Fecha">
+            <Entrada type="date" value={fecha} onChange={(e) => e.target.value && setFecha(e.target.value)} />
+          </Campo>
+          <Campo etiqueta="Hora">
+            <Selector value={hora} onChange={(e) => setHora(e.target.value)}>
+              {opcionesHora.map((h) => (
+                <option key={h}>{h}</option>
+              ))}
+            </Selector>
+          </Campo>
+          <Campo etiqueta="Agendado por">
+            <Selector value={agendadoPor} onChange={(e) => setAgendadoPor(e.target.value)}>
+              {[...new Set([agendadoPor, ...listas.asesores])].filter(Boolean).map((a) => (
+                <option key={a}>{a}</option>
+              ))}
+            </Selector>
+          </Campo>
+        </div>
+        <Campo etiqueta="Notas">
+          <AreaTexto value={notas} onChange={(e) => setNotas(e.target.value)} className="min-h-[64px]" />
+        </Campo>
+      </div>
+      {error && <p className="mt-4 rounded-md bg-rojo-suave px-3 py-2 text-sm text-rojo-osc">{error}</p>}
+    </Modal>
+  );
+}
+
 function DetalleCita({ cita: inicial, onCerrar }: { cita: Cita; onCerrar: () => void }) {
   const { editar, eliminar, datos, listas } = useDatos();
   // Siempre la versión más reciente (por si se completan datos con la ventana abierta).
@@ -1107,6 +1283,7 @@ function DetalleCita({ cita: inicial, onCerrar }: { cita: Cita; onCerrar: () => 
   const [fecha, setFecha] = useState(cita.fecha);
   const [hora, setHora] = useState(cita.hora);
   const [tecnico, setTecnico] = useState('');
+  const [editando, setEditando] = useState(false);
   const yaIngreso = datos.ingresos.some((i) => i.citaId === cita.id && !i.eliminado);
   const e = ESTADOS_CITA.find((x) => x.id === cita.estado)!;
 
@@ -1134,11 +1311,13 @@ function DetalleCita({ cita: inicial, onCerrar }: { cita: Cita; onCerrar: () => 
   };
   const horas = getDay(parseISO(fecha)) === 6 ? HORAS_SABADO : HORAS_SEMANA;
 
+  if (editando) return <EditarCita cita={cita} cliente={cliente} onListo={() => setEditando(false)} onCancelar={() => setEditando(false)} />;
+
   return (
     <Modal
       abierto
       onCerrar={onCerrar}
-      titulo={nombreVisible(cliente) ?? `Cita ${cita.placa}`}
+      titulo={nombreVisible(cliente) ?? `Cita ${cita.placa || "sin nombre"}`}
       descripcion={`${cita.placa ? cita.placa + ' · ' : ''}${format(parseISO(cita.fecha), "EEEE d 'de' MMMM", { locale: es })} · ${cita.hora} · ${nombreArea(cita.area)}`}
       pie={
         <>
@@ -1152,6 +1331,9 @@ function DetalleCita({ cita: inicial, onCerrar }: { cita: Cita; onCerrar: () => 
             }}
           >
             Eliminar
+          </Boton>
+          <Boton variante="secundario" onClick={() => setEditando(true)}>
+            <Pencil className="h-4 w-4" /> Editar
           </Boton>
           <Boton variante="secundario" onClick={onCerrar}>
             Cerrar
