@@ -1,5 +1,5 @@
 // Ruta /api/dni en Vercel. Uso: GET /api/dni?numero=12345678 con la sesión del sistema.
-import { consultarDni, tokenDeSesion } from './_reniec.js';
+import { consultarDni, tokenDeSesion, tokensDni } from './_reniec.js';
 
 export default async function handler(req, res) {
   if (req.method !== 'GET') {
@@ -9,7 +9,7 @@ export default async function handler(req, res) {
   const r = await consultarDni({
     dni: req.query?.numero,
     idToken: tokenDeSesion(req.headers.authorization),
-    token: process.env.DECOLECTA_TOKEN,
+    tokens: tokensDni(process.env),
     firebaseApiKey: process.env.VITE_FIREBASE_API_KEY,
     exigirSesion: true,
   });

@@ -1,11 +1,11 @@
 import { defineConfig, loadEnv, type Plugin } from 'vite';
 import react from '@vitejs/plugin-react';
 // @ts-ignore: módulo JS compartido con la función de Vercel (api/dni.js)
-import { consultarDni, tokenDeSesion } from './api/_reniec.js';
+import { consultarDni, tokenDeSesion, tokensDni } from './api/_reniec.js';
 
 /**
  * Cuando el sistema corre en la compu (INICIAR.bat / npm run dev), atiende /api/dni aquí mismo,
- * igual que lo hace Vercel en internet. El token se lee de .env.local y nunca llega al navegador
+ * igual que lo hace Vercel en internet. Los tokens se leen de .env.local y nunca llegan al navegador
  * (solo las variables que empiezan con VITE_ se pasan al navegador).
  */
 function apiDniLocal(env: Record<string, string>): Plugin {
@@ -17,7 +17,7 @@ function apiDniLocal(env: Record<string, string>): Plugin {
         const r = await consultarDni({
           dni: url.searchParams.get('numero') ?? '',
           idToken: tokenDeSesion(req.headers.authorization),
-          token: env.DECOLECTA_TOKEN,
+          tokens: tokensDni(env),
           firebaseApiKey: env.VITE_FIREBASE_API_KEY,
           // En modo demostración (sin Firebase) no hay sesión real que verificar.
           exigirSesion: Boolean(env.VITE_FIREBASE_API_KEY),
