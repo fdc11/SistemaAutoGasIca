@@ -55,18 +55,18 @@ function Navegacion({ onIr }: { onIr?: () => void }) {
   const claseItem = ({ isActive }: { isActive: boolean }) =>
     cx(
       'flex min-h-[44px] items-center gap-3 rounded-xl px-3 text-[14.5px] font-medium transition-colors [&>svg]:h-[19px] [&>svg]:w-[19px] [&>svg]:shrink-0',
-      isActive ? 'bg-carbon text-white' : 'text-[#4A4E55] hover:bg-suave hover:text-tinta',
+      isActive ? 'bg-white text-tinta [&>svg]:text-rojo' : 'text-carbon-texto hover:bg-carbon-2 hover:text-white',
     );
   return (
     <div className="flex h-full flex-col">
       <div className="flex items-center gap-3 px-5 pb-5 pt-5">
         <img src={iconoMarca} alt="" width={42} height={42} className="h-[42px] w-[42px] rounded-xl" draggable={false} />
-        <span className="text-[18px] font-semibold tracking-tight text-tinta">AutoGas Ica</span>
+        <span className="text-[18px] font-semibold tracking-tight text-white">AutoGas Ica</span>
       </div>
       <nav className="flex-1 overflow-y-auto px-3 pb-4" aria-label="Principal">
         {NAV.map((g, gi) => (
           <div key={gi} className={gi ? 'mt-4' : ''}>
-            {g.grupo && <p className="mb-1.5 px-3 text-xs font-medium text-gris">{g.grupo}</p>}
+            {g.grupo && <p className="mb-1.5 px-3 text-xs font-medium text-[#8C929B]">{g.grupo}</p>}
             <ul className="space-y-0.5">
               {g.items.map((it) => (
                 <li key={it.a}>
@@ -80,7 +80,7 @@ function Navegacion({ onIr }: { onIr?: () => void }) {
           </div>
         ))}
       </nav>
-      <div className="space-y-0.5 border-t border-linea px-3 py-3">
+      <div className="space-y-0.5 border-t border-white/10 px-3 py-3">
         <NavLink to="/ajustes" onClick={onIr} className={claseItem}>
           <Settings />
           Ajustes
@@ -88,7 +88,7 @@ function Navegacion({ onIr }: { onIr?: () => void }) {
         <button
           type="button"
           onClick={() => void salir()}
-          className="flex min-h-[44px] w-full items-center gap-3 rounded-xl px-3 text-[14.5px] font-medium text-[#4A4E55] hover:bg-suave hover:text-tinta [&>svg]:h-[19px] [&>svg]:w-[19px]"
+          className="flex min-h-[44px] w-full items-center gap-3 rounded-xl px-3 text-[14.5px] font-medium text-carbon-texto hover:bg-carbon-2 hover:text-white [&>svg]:h-[19px] [&>svg]:w-[19px]"
         >
           <LogOut />
           Cerrar sesión
@@ -126,19 +126,19 @@ export default function Layout() {
   return (
     <div className="min-h-screen bg-pagina">
       <aside className="fixed inset-y-0 left-0 z-30 hidden w-[264px] p-4 pr-0 lg:block">
-        <div className="h-full rounded-3xl bg-white">
+        <div className="h-full rounded-3xl bg-carbon">
           <Navegacion />
         </div>
       </aside>
       {menu && (
         <div className="fixed inset-0 z-40 lg:hidden" role="dialog" aria-modal="true" aria-label="Menú">
           <div className="absolute inset-0 bg-carbon/50" onClick={() => setMenu(false)} />
-          <aside className="absolute inset-y-0 left-0 w-[272px] rounded-r-3xl bg-white">
+          <aside className="absolute inset-y-0 left-0 w-[272px] rounded-r-3xl bg-carbon">
             <button
               type="button"
               aria-label="Cerrar menú"
               onClick={() => setMenu(false)}
-              className="absolute right-3 top-5 flex h-10 w-10 items-center justify-center rounded-full text-gris hover:bg-suave hover:text-tinta"
+              className="absolute right-3 top-5 flex h-10 w-10 items-center justify-center rounded-full text-carbon-texto hover:bg-carbon-2 hover:text-white"
             >
               <X className="h-5 w-5" />
             </button>
