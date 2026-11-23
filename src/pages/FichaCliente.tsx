@@ -312,7 +312,7 @@ export default function FichaCliente() {
 
           <Panel titulo="Registrar contacto">
             <div className="space-y-3">
-              <div className="grid grid-cols-4 gap-1 rounded-md bg-fondo p-1">
+              <div className="grid grid-cols-4 gap-1 rounded-xl bg-fondo p-1">
                 {(['llamada', 'whatsapp', 'presencial', 'nota'] as TipoInteraccion[]).map((t) => (
                   <button
                     key={t}
@@ -506,7 +506,7 @@ function EditarCliente({ cliente, onCerrar }: { cliente: Cliente; onCerrar: () =
           <Entrada type="date" value={f.proximoContacto ?? ''} onChange={(e) => setF({ ...f, proximoContacto: e.target.value })} />
         </Campo>
       </div>
-      {error && <p className="mt-4 rounded-md bg-rojo-suave px-3 py-2 text-sm text-rojo-osc">{error}</p>}
+      {error && <p className="mt-4 rounded-xl bg-rojo-suave px-3 py-2 text-sm text-rojo-osc">{error}</p>}
     </Modal>
   );
 }

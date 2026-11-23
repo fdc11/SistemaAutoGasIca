@@ -69,7 +69,7 @@ export function BuscarCliente({
         className="pl-9"
       />
       {abierto && q.trim().length >= 2 && (
-        <div className="absolute left-0 right-0 z-20 mt-1 overflow-hidden rounded-md border border-linea bg-white shadow-modal">
+        <div className="absolute left-0 right-0 z-20 mt-1 overflow-hidden rounded-xl border border-linea bg-white shadow-modal">
           {lista.length === 0 ? (
             <p className="px-3 py-2.5 text-sm text-gris">{vacio}</p>
           ) : (

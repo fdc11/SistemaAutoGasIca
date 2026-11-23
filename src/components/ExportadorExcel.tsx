@@ -95,7 +95,7 @@ export function ExportadorExcel({ formatos: ids, extras = [], titulo = 'Exportar
               <li key={o.id}>
                 <label
                   className={cx(
-                    'flex cursor-pointer items-start gap-3 rounded-md border px-3 py-2.5',
+                    'flex cursor-pointer items-start gap-3 rounded-xl border px-3 py-2.5',
                     elegido === o.id ? 'border-carbon bg-fondo' : 'border-linea hover:border-linea-fuerte',
                   )}
                 >

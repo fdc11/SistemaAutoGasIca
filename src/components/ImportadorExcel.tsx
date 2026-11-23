@@ -239,7 +239,7 @@ export function ImportadorExcel({ plantillas: ids, titulo = 'Importar Excel', on
             )}
           >
             <UploadCloud className="h-10 w-10 text-gris-claro" />
-            <p className="mt-4 font-display text-2xl font-bold uppercase tracking-tight">Arrastra tu Excel aquí</p>
+            <p className="mt-4 text-2xl font-semibold tracking-tight">Arrastra tu Excel aquí</p>
             <p className="mt-1 text-sm text-gris">Archivos .xlsx o .xls</p>
             <Boton className="mt-5" variante="secundario" onClick={() => input.current?.click()} disabled={cargando}>
               {cargando ? 'Leyendo archivo…' : 'Elegir archivo'}
@@ -256,7 +256,7 @@ export function ImportadorExcel({ plantillas: ids, titulo = 'Importar Excel', on
               }}
             />
           </div>
-          {error && <p className="mt-4 rounded-md bg-rojo-suave px-3 py-2 text-sm text-rojo-osc">{error}</p>}
+          {error && <p className="mt-4 rounded-xl bg-rojo-suave px-3 py-2 text-sm text-rojo-osc">{error}</p>}
           <div className="mt-6">
             <p className="mb-2 text-sm font-semibold">Formatos que reconoce</p>
             <ul className="grid gap-x-6 gap-y-2 text-sm text-gris sm:grid-cols-2">
@@ -372,7 +372,7 @@ export function ImportadorExcel({ plantillas: ids, titulo = 'Importar Excel', on
               <div className="mt-4 grid gap-2 sm:grid-cols-2">
                 {hojas.map((h, i) =>
                   esAgenda(h) ? (
-                    <label key={h.nombre} className="flex items-center gap-2.5 rounded-md border border-linea px-3 py-2.5 text-sm">
+                    <label key={h.nombre} className="flex items-center gap-2.5 rounded-xl border border-linea px-3 py-2.5 text-sm">
                       <input
                         type="checkbox"
                         className="h-4 w-4 accent-rojo"

@@ -2,7 +2,7 @@ import { useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { format, subMonths, parseISO, differenceInCalendarDays } from 'date-fns';
 import { es } from 'date-fns/locale';
-import { MessageCircle } from 'lucide-react';
+import { ArrowUpRight, CalendarDays, Droplet, MessageCircle, RotateCcw, Users } from 'lucide-react';
 import { useActivos, useDatos } from '../data/store';
 import { useAuth } from '../data/auth';
 import { CANALES, MESES, estadoInfo, nombreArea } from '../lib/catalogos';
@@ -136,20 +136,36 @@ export default function Inicio() {
     <>
       <Encabezado titulo="Inicio" descripcion={`Hola${asesor ? ', ' + asesor : ''}. Esto es lo que pasa en el taller hoy, ${fecha}.`} />
 
-      <section className="mb-5 grid grid-cols-2 overflow-hidden rounded-lg border border-linea bg-white xl:grid-cols-4">
-        <Indicador etiqueta="Clientes nuevos este mes" valor={nuevosMes.toLocaleString('es-PE')} nota={vNuevos == null ? 'Sin datos del mes anterior' : `${vNuevos >= 0 ? '+' : ''}${vNuevos}% frente a ${MESES[subMonths(ahora, 1).getMonth()].toLowerCase()} completo`} />
+      <section className="mb-5 grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
         <Indicador
+          oscuro
+          icono={<Droplet />}
+          etiqueta="Ingresos de aceite este mes"
+          valor={soles(ingMes)}
+          chip={vIng == null ? undefined : `${vIng >= 0 ? '+' : ''}${vIng}%`}
+          chipMal={vIng != null && vIng < 0}
+          nota={vIng == null ? `Mes anterior: ${soles(ingAnt)}` : 'frente al mismo día del mes anterior'}
+        />
+        <Indicador
+          icono={<Users />}
+          etiqueta="Clientes nuevos este mes"
+          valor={nuevosMes.toLocaleString('es-PE')}
+          chip={vNuevos == null ? undefined : `${vNuevos >= 0 ? '+' : ''}${vNuevos}%`}
+          chipMal={vNuevos != null && vNuevos < 0}
+          nota={vNuevos == null ? 'Sin datos del mes anterior' : `frente a ${MESES[subMonths(ahora, 1).getMonth()].toLowerCase()} completo`}
+        />
+        <Indicador
+          icono={<CalendarDays />}
           etiqueta="Citas de hoy"
           valor={String(citasHoy.length)}
           nota={`${citasHoy.filter((c) => c.area === 'gas').length} en gas · ${citasHoy.filter((c) => c.area === 'mecanica').length} en mecánica`}
         />
         <Indicador
-          etiqueta="Ingresos de aceite este mes"
-          valor={soles(ingMes)}
-          nota={vIng == null ? `Mes anterior: ${soles(ingAnt)}` : `${vIng >= 0 ? '+' : ''}${vIng}% frente al mismo día del mes anterior`}
-          tono={vIng != null && vIng < 0 ? 'mal' : undefined}
+          icono={<RotateCcw />}
+          etiqueta="Clientes de aceite que regresan"
+          valor={`${Math.round(retorno * 100)}%`}
+          nota={`${fichas.filter((f) => f.visitas >= 2).length} de ${fichas.length} vehículos volvieron`}
         />
-        <Indicador etiqueta="Clientes de aceite que regresan" valor={`${Math.round(retorno * 100)}%`} nota={`${fichas.filter((f) => f.visitas >= 2).length} de ${fichas.length} vehículos volvieron`} />
       </section>
 
       <div className="mb-5 grid gap-5 xl:grid-cols-[minmax(0,1fr)_380px]">
@@ -177,7 +193,7 @@ export default function Inicio() {
                 <p className="px-5 py-8 text-sm text-gris">No hay clientes antiguos por recuperar.</p>
               ) : (
                 <>
-                  <p className="border-b border-linea bg-fondo px-5 py-2.5 text-[13px] text-gris">
+                  <p className="mx-5 mb-1 mt-1 rounded-xl bg-suave px-4 py-2.5 text-[13px] text-gris">
                     Llevan más de {DIAS_RECUPERAR} días sin contacto. Llámalos cuando haya tiempo libre, o márcalos como perdidos desde su ficha.
                   </p>
                   <ListaSeguimiento filas={porRecuperar} />
@@ -228,7 +244,7 @@ export default function Inicio() {
           </div>
         </Panel>
 
-        <Panel titulo="Agenda de hoy" acciones={<Link to="/agenda" className="text-sm font-semibold text-gris hover:text-tinta">Abrir agenda</Link>} sinRelleno>
+        <Panel titulo="Agenda de hoy" acciones={<Link to="/agenda" aria-label="Abrir agenda" title="Abrir agenda" className="flex h-9 w-9 items-center justify-center rounded-full border border-linea-fuerte text-tinta hover:bg-suave"><ArrowUpRight className="h-4 w-4" /></Link>} sinRelleno>
           {citasHoy.length === 0 ? (
             <p className="px-5 py-8 text-sm text-gris">No hay citas para hoy.</p>
           ) : (
@@ -268,19 +284,19 @@ export default function Inicio() {
                   return `${d.mes}<br/><b>${soles(d.ingresos)}</b>${d.celular != null ? `<br/>${d.celular}% con celular` : ''}`;
                 },
               },
-              xAxis: { type: 'category', data: serie.map((s) => s.mes), axisLine: { lineStyle: { color: '#CDD1D7' } }, axisTick: { show: false } },
+              xAxis: { type: 'category', data: serie.map((s) => s.mes), axisLine: { show: false }, axisTick: { show: false }, axisLabel: { color: '#5F636B' } },
               yAxis: { type: 'value', show: false },
               series: [
                 {
                   type: 'bar',
-                  barWidth: '46%',
-                  data: serie.map((s, i) => ({ value: s.ingresos, itemStyle: { color: i === serie.length - 1 ? '#D7141F' : '#C9CCD2', borderRadius: [3, 3, 0, 0] } })),
+                  barWidth: '42%',
+                  data: serie.map((s, i) => ({ value: s.ingresos, itemStyle: { color: i === serie.length - 1 ? '#17181B' : '#E2E2DE', borderRadius: [10, 10, 10, 10] } })),
                   label: { show: true, position: 'top', color: '#1B1D21', fontWeight: 600, formatter: (p: any) => (p.value ? `S/ ${Math.round(p.value / 1000)}k` : '') },
                 },
               ],
             }}
           />
-          <div className="mt-3 flex justify-between border-t border-linea pt-3 text-[13px]">
+          <div className="mt-3 flex flex-wrap justify-between gap-2 rounded-2xl bg-suave px-4 py-3 text-[13px]">
             <span className="text-gris">Servicios con celular registrado</span>
             <span className="flex gap-3 num">
               {serie.map((s) => (
@@ -327,22 +343,30 @@ export default function Inicio() {
 
       <div className="grid gap-5 xl:grid-cols-[minmax(0,1fr)_380px]">
         <Panel titulo="Segmentos de clientes de aceite" sinRelleno>
-          <div className="grid divide-y divide-linea sm:grid-cols-5 sm:divide-x sm:divide-y-0">
+          <div className="grid grid-cols-2 gap-2.5 px-6 pb-3 sm:grid-cols-5">
             {SEGMENTOS.map((s) => {
               const fs = segmentos.get(s.id) ?? [];
               const monto = Math.round(fs.reduce((a, f) => a + f.totalPagado, 0));
               return (
-                <button key={s.id} type="button" onClick={() => setSegVer(s.id)} className="flex flex-col items-start justify-start px-5 py-4 text-left hover:bg-[#FAFAFB]">
+                <button
+                  key={s.id}
+                  type="button"
+                  onClick={() => setSegVer(s.id)}
+                  className={cx(
+                    'flex flex-col items-start justify-start rounded-2xl px-4 py-4 text-left transition-colors',
+                    s.id === 'leal' ? 'bg-carbon text-white hover:bg-carbon-2' : s.id === 'perdido' ? 'bg-rojo-suave hover:bg-[#F9DADC]' : s.id === 'riesgo' ? 'bg-aviso-suave hover:bg-[#F7E6C8]' : 'bg-suave hover:bg-[#ECECE8]',
+                  )}
+                >
                   <p className="min-h-[40px] text-sm font-semibold sm:min-h-[40px]">{s.nombre}</p>
-                  <p className="mt-1 font-display text-3xl font-bold leading-none num">{fs.length}</p>
-                  <p className="mt-1.5 text-[13px] text-gris num">{soles(monto)}</p>
-                  <p className="mt-2 text-xs text-gris-claro">{s.regla}</p>
+                  <p className="mt-1 text-3xl font-semibold leading-none tracking-tight num">{fs.length}</p>
+                  <p className="mt-1.5 text-[13px] opacity-80 num">{soles(monto)}</p>
+                  <p className="mt-2 text-xs opacity-75">{s.regla}</p>
                 </button>
               );
             })}
           </div>
         </Panel>
-        <Panel titulo="Stock por reponer" acciones={<Link to="/inventario" className="text-sm font-semibold text-gris hover:text-tinta">Inventario</Link>} sinRelleno>
+        <Panel titulo="Stock por reponer" acciones={<Link to="/inventario" aria-label="Abrir inventario" title="Abrir inventario" className="flex h-9 w-9 items-center justify-center rounded-full border border-linea-fuerte text-tinta hover:bg-suave"><ArrowUpRight className="h-4 w-4" /></Link>} sinRelleno>
           {bajos.length === 0 ? (
             <p className="px-5 py-6 text-sm text-gris">Todo el stock está sobre su mínimo.</p>
           ) : (
@@ -400,12 +424,43 @@ export default function Inicio() {
   );
 }
 
-function Indicador({ etiqueta, valor, nota, tono }: { etiqueta: string; valor: string; nota: string; tono?: 'mal' }) {
+function Indicador({
+  etiqueta,
+  valor,
+  nota,
+  icono,
+  chip,
+  chipMal,
+  oscuro,
+}: {
+  etiqueta: string;
+  valor: string;
+  nota: string;
+  icono: React.ReactNode;
+  chip?: string;
+  chipMal?: boolean;
+  oscuro?: boolean;
+}) {
   return (
-    <div className="border-linea px-4 py-4 even:border-l [&:nth-child(n+3)]:border-t sm:px-5 sm:py-5 xl:border-l xl:first:border-l-0 xl:[&:nth-child(n+3)]:border-t-0">
-      <p className="text-[13px] text-gris sm:text-sm">{etiqueta}</p>
-      <p className="mt-2 font-display text-[30px] font-bold leading-none tracking-tight text-tinta num sm:text-[40px]">{valor}</p>
-      <p className={cx('mt-2 text-[13px]', tono === 'mal' ? 'text-rojo' : 'text-gris')}>{nota}</p>
+    <div className={cx('flex min-h-[172px] flex-col gap-3 rounded-3xl p-5 sm:px-6', oscuro ? 'bg-carbon text-white' : 'bg-white text-tinta')}>
+      <div className="flex items-start justify-between gap-3">
+        <span className={cx('flex h-11 w-11 items-center justify-center rounded-xl [&>svg]:h-5 [&>svg]:w-5', oscuro ? 'bg-carbon-3' : 'bg-suave')}>{icono}</span>
+        {chip && (
+          <span
+            className={cx(
+              'rounded-full px-2.5 py-0.5 text-xs font-bold num',
+              chipMal ? (oscuro ? 'bg-rojo text-white' : 'bg-rojo-suave text-rojo-osc') : oscuro ? 'bg-[#1E7B4F] text-white' : 'bg-ok-suave text-ok',
+            )}
+          >
+            {chip}
+          </span>
+        )}
+      </div>
+      <p className={cx('mt-auto text-sm', oscuro ? 'text-[#C9CBC6]' : 'text-gris')}>{etiqueta}</p>
+      <div className="flex flex-wrap items-end justify-between gap-x-3 gap-y-1">
+        <p className="text-[30px] font-semibold leading-none tracking-tight num">{valor}</p>
+        <p className={cx('max-w-[60%] text-right text-xs leading-snug', oscuro ? 'text-[#C9CBC6]' : 'text-gris')}>{nota}</p>
+      </div>
     </div>
   );
 }
@@ -441,7 +496,7 @@ function BotonWa({ celular }: { celular: string }) {
       rel="noreferrer"
       title={`Escribir a ${formatoCelular(celular)}`}
       aria-label={`Escribir por WhatsApp a ${formatoCelular(celular)}`}
-      className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-md border border-linea text-gris hover:border-ok/40 hover:bg-ok-suave hover:text-ok"
+      className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-ok-suave text-ok hover:bg-[#D3EADD]"
     >
       <MessageCircle className="h-4 w-4" />
     </a>

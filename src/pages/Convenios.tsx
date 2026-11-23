@@ -500,16 +500,16 @@ function DetalleEmpresa({ empresa, onCerrar, onEditar }: { empresa: Empresa; onC
         </>
       }
     >
-      <div className="mb-5 rounded-md bg-fondo px-3 py-2.5 text-sm">
+      <div className="mb-5 rounded-xl bg-fondo px-3 py-2.5 text-sm">
         <span className="text-gris">Condiciones: </span>
         {empresa.condiciones || <span className="text-gris">no registradas. Edita la empresa para anotar el descuento o precio pactado.</span>}
       </div>
 
       <h3 className="mb-2 text-sm font-semibold">Cobro por mes</h3>
       {porMes.length === 0 ? (
-        <p className="mb-5 rounded-md border border-linea px-4 py-3 text-sm text-gris">Sin atenciones registradas.</p>
+        <p className="mb-5 rounded-xl border border-linea px-4 py-3 text-sm text-gris">Sin atenciones registradas.</p>
       ) : (
-        <ul className="mb-5 divide-y divide-linea rounded-md border border-linea">
+        <ul className="mb-5 divide-y divide-linea rounded-xl border border-linea">
           {porMes.map((m) => (
             <li key={m.mes} className="flex flex-wrap items-center gap-3 px-4 py-2.5 text-sm">
               <span className="w-36 font-medium first-letter:uppercase">{nombreMes(m.mes)}</span>
@@ -531,7 +531,7 @@ function DetalleEmpresa({ empresa, onCerrar, onEditar }: { empresa: Empresa; onC
       )}
 
       <h3 className="mb-2 text-sm font-semibold">Clientes y vehículos ({r.clientes.length})</h3>
-      <ul className="divide-y divide-linea rounded-md border border-linea">
+      <ul className="divide-y divide-linea rounded-xl border border-linea">
         {r.clientes.length === 0 && <li className="px-4 py-3 text-sm text-gris">Sin clientes. Se agregan solos al registrar o importar atenciones.</li>}
         {r.clientes
           .sort((a, b) => a.nombre.localeCompare(b.nombre))
@@ -800,7 +800,7 @@ function FormAtencion({ atencion, onCerrar }: { atencion?: AtencionConvenio; onC
         <fieldset className="space-y-3">
           <legend className="mb-2 text-[13px] font-semibold uppercase tracking-wide text-gris">Cliente o conductor</legend>
           {elegido ? (
-            <div className="flex items-center gap-3 rounded-md border border-ok/30 bg-ok-suave px-3 py-2.5">
+            <div className="flex items-center gap-3 rounded-xl border border-ok/30 bg-ok-suave px-3 py-2.5">
               <UserCheck className="h-4 w-4 shrink-0 text-ok" />
               <p className="min-w-0 flex-1 truncate text-sm">
                 <span className="font-semibold">{esNombreRelleno(elegido.nombre) ? 'Cliente sin nombre' : elegido.nombre}</span>
@@ -913,7 +913,7 @@ function FormAtencion({ atencion, onCerrar }: { atencion?: AtencionConvenio; onC
           <AreaTexto value={f.notas} onChange={(e) => set('notas', e.target.value)} className="min-h-[60px]" />
         </Campo>
       </div>
-      {error && <p className="mt-4 rounded-md bg-rojo-suave px-3 py-2 text-sm text-rojo-osc">{error}</p>}
+      {error && <p className="mt-4 rounded-xl bg-rojo-suave px-3 py-2 text-sm text-rojo-osc">{error}</p>}
       <Confirmar
         abierto={borrar}
         titulo="Eliminar atención"
@@ -989,7 +989,7 @@ function FormEmpresa({ empresa, onCerrar }: { empresa?: Empresa; onCerrar: () =>
           <AreaTexto value={f.condiciones} onChange={(e) => setF({ ...f, condiciones: e.target.value })} />
         </Campo>
       </div>
-      {error && <p className="mt-4 rounded-md bg-rojo-suave px-3 py-2 text-sm text-rojo-osc">{error}</p>}
+      {error && <p className="mt-4 rounded-xl bg-rojo-suave px-3 py-2 text-sm text-rojo-osc">{error}</p>}
     </Modal>
   );
 }
@@ -1040,7 +1040,7 @@ function FormFiltro({ filtro, onCerrar }: { filtro?: Filtro; onCerrar: () => voi
           <Entrada value={f.filtroAceite} onChange={(e) => setF({ ...f, filtroAceite: e.target.value })} />
         </Campo>
       </div>
-      {error && <p className="mt-4 rounded-md bg-rojo-suave px-3 py-2 text-sm text-rojo-osc">{error}</p>}
+      {error && <p className="mt-4 rounded-xl bg-rojo-suave px-3 py-2 text-sm text-rojo-osc">{error}</p>}
     </Modal>
   );
 }

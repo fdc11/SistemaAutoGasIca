@@ -267,7 +267,7 @@ export default function Registrar() {
               </Campo>
             </div>
             {canal === 'convenio' && filtroSugerido && (
-              <p className="mt-4 rounded-md bg-fondo px-3 py-2.5 text-sm text-tinta">
+              <p className="mt-4 rounded-xl bg-fondo px-3 py-2.5 text-sm text-tinta">
                 Filtros para {filtroSugerido.marca} {filtroSugerido.modelo}: aire <strong>{filtroSugerido.filtroAire || '—'}</strong>, aceite{' '}
                 <strong>{filtroSugerido.filtroAceite || '—'}</strong>
               </p>
@@ -383,7 +383,7 @@ export default function Registrar() {
                             disabled={lleno}
                             onClick={() => set('horaCita', h)}
                             className={cx(
-                              'rounded-md border px-2 py-2 text-center text-sm font-semibold num transition-colors',
+                              'rounded-xl border px-2 py-2 text-center text-sm font-semibold num transition-colors',
                               f.horaCita === h
                                 ? 'border-rojo bg-rojo text-white'
                                 : lleno
@@ -437,7 +437,7 @@ export default function Registrar() {
               </div>
             </div>
           ) : (
-            <div className="rounded-lg border border-linea bg-white p-4 text-sm text-gris">
+            <div className="rounded-2xl bg-white p-4 text-sm text-gris">
               El sistema revisa el celular y la placa mientras escribes. Si el cliente ya existe, te avisa aquí antes de guardar.
             </div>
           )}

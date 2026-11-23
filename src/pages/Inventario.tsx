@@ -349,7 +349,7 @@ function FormMovimiento({
           <Entrada value={f.nota} onChange={(e) => setF({ ...f, nota: e.target.value })} />
         </Campo>
       </div>
-      {error && <p className="mt-4 rounded-md bg-rojo-suave px-3 py-2 text-sm text-rojo-osc">{error}</p>}
+      {error && <p className="mt-4 rounded-xl bg-rojo-suave px-3 py-2 text-sm text-rojo-osc">{error}</p>}
     </Modal>
   );
 }
@@ -436,7 +436,7 @@ function FormProducto({ producto, onCerrar }: { producto?: Producto; onCerrar: (
           </Campo>
         )}
       </div>
-      {error && <p className="mt-4 rounded-md bg-rojo-suave px-3 py-2 text-sm text-rojo-osc">{error}</p>}
+      {error && <p className="mt-4 rounded-xl bg-rojo-suave px-3 py-2 text-sm text-rojo-osc">{error}</p>}
       {producto?.precio != null && <p className="mt-3 text-xs text-gris">Precio actual: {soles(producto.precio)}</p>}
     </Modal>
   );

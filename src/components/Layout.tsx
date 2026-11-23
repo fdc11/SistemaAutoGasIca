@@ -2,12 +2,13 @@ import { useEffect, useState, type ReactNode } from 'react';
 import { NavLink, Outlet, useLocation } from 'react-router-dom';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
-import { LayoutGrid, UserPlus, Users, CalendarDays, Wrench, Droplet, Building2, Boxes, Settings, LogOut, Menu, X, PhoneIncoming } from 'lucide-react';
+import { LayoutGrid, UserPlus, Users, CalendarDays, Wrench, Droplet, Building2, Boxes, Settings, LogOut, Menu, X, PhoneIncoming, Clock } from 'lucide-react';
 import { useAuth } from '../data/auth';
 import { useDatos } from '../data/store';
 import { cx } from '../lib/utils';
 import logoClaro from '../assets/logo-autogas.webp';
 import logoOscuro from '../assets/logo-autogas-oscuro.webp';
+import iconoMarca from '../assets/marca/icono-ag-96.webp';
 
 export function Logo({ claro = true, className }: { claro?: boolean; className?: string }) {
   return (
@@ -51,31 +52,25 @@ const NAV: { grupo?: string; items: { a: string; t: string; i: ReactNode; fin?: 
 
 function Navegacion({ onIr }: { onIr?: () => void }) {
   const { salir } = useAuth();
+  const claseItem = ({ isActive }: { isActive: boolean }) =>
+    cx(
+      'flex min-h-[44px] items-center gap-3 rounded-xl px-3 text-[14.5px] font-medium transition-colors [&>svg]:h-[19px] [&>svg]:w-[19px] [&>svg]:shrink-0',
+      isActive ? 'bg-carbon text-white' : 'text-[#4A4E55] hover:bg-suave hover:text-tinta',
+    );
   return (
     <div className="flex h-full flex-col">
-      <div className="px-6 pb-6 pt-7">
-        <Logo />
+      <div className="flex items-center gap-3 px-5 pb-5 pt-5">
+        <img src={iconoMarca} alt="" width={42} height={42} className="h-[42px] w-[42px] rounded-xl" draggable={false} />
+        <span className="text-[18px] font-semibold tracking-tight text-tinta">AutoGas Ica</span>
       </div>
       <nav className="flex-1 overflow-y-auto px-3 pb-4" aria-label="Principal">
         {NAV.map((g, gi) => (
-          <div key={gi} className={gi ? 'mt-5' : ''}>
-            {g.grupo && <p className="mb-1.5 px-3 text-xs font-medium text-carbon-texto/70">{g.grupo}</p>}
+          <div key={gi} className={gi ? 'mt-4' : ''}>
+            {g.grupo && <p className="mb-1.5 px-3 text-xs font-medium text-gris">{g.grupo}</p>}
             <ul className="space-y-0.5">
               {g.items.map((it) => (
                 <li key={it.a}>
-                  <NavLink
-                    to={it.a}
-                    end={it.fin}
-                    onClick={onIr}
-                    className={({ isActive }) =>
-                      cx(
-                        'relative flex items-center gap-3 rounded-md px-3 py-2 text-[14.5px] font-medium transition-colors [&>svg]:h-[18px] [&>svg]:w-[18px] [&>svg]:shrink-0',
-                        isActive
-                          ? 'bg-carbon-3 text-white before:absolute before:-left-3 before:top-1.5 before:bottom-1.5 before:w-[3px] before:rounded-r before:bg-rojo [&>svg]:text-rojo'
-                          : 'text-carbon-texto hover:bg-carbon-2 hover:text-white',
-                      )
-                    }
-                  >
+                  <NavLink to={it.a} end={it.fin} onClick={onIr} className={claseItem}>
                     {it.i}
                     {it.t}
                   </NavLink>
@@ -85,24 +80,15 @@ function Navegacion({ onIr }: { onIr?: () => void }) {
           </div>
         ))}
       </nav>
-      <div className="space-y-0.5 border-t border-white/10 px-3 py-3">
-        <NavLink
-          to="/ajustes"
-          onClick={onIr}
-          className={({ isActive }) =>
-            cx(
-              'flex items-center gap-3 rounded-md px-3 py-2 text-[14.5px] font-medium [&>svg]:h-[18px] [&>svg]:w-[18px]',
-              isActive ? 'bg-carbon-3 text-white' : 'text-carbon-texto hover:bg-carbon-2 hover:text-white',
-            )
-          }
-        >
+      <div className="space-y-0.5 border-t border-linea px-3 py-3">
+        <NavLink to="/ajustes" onClick={onIr} className={claseItem}>
           <Settings />
           Ajustes
         </NavLink>
         <button
           type="button"
           onClick={() => void salir()}
-          className="flex w-full items-center gap-3 rounded-md px-3 py-2 text-[14.5px] font-medium text-carbon-texto hover:bg-carbon-2 hover:text-white [&>svg]:h-[18px] [&>svg]:w-[18px]"
+          className="flex min-h-[44px] w-full items-center gap-3 rounded-xl px-3 text-[14.5px] font-medium text-[#4A4E55] hover:bg-suave hover:text-tinta [&>svg]:h-[19px] [&>svg]:w-[19px]"
         >
           <LogOut />
           Cerrar sesión
@@ -119,7 +105,12 @@ function Reloj() {
     return () => clearInterval(t);
   }, []);
   const txt = format(ahora, "EEEE d 'de' MMMM, HH:mm", { locale: es });
-  return <span className="hidden text-sm text-gris md:inline">{txt.charAt(0).toUpperCase() + txt.slice(1)}</span>;
+  return (
+    <span className="hidden h-11 items-center gap-2 rounded-full bg-white px-4 text-sm text-[#4A4E55] md:inline-flex">
+      <Clock className="h-4 w-4" />
+      {txt.charAt(0).toUpperCase() + txt.slice(1)}
+    </span>
+  );
 }
 
 export default function Layout() {
@@ -133,20 +124,21 @@ export default function Layout() {
   }, [loc.pathname]);
 
   return (
-    <div className="min-h-screen bg-fondo">
-      <aside className="fixed inset-y-0 left-0 z-30 hidden w-[248px] bg-carbon lg:block">
-        <Navegacion />
+    <div className="min-h-screen bg-pagina">
+      <aside className="fixed inset-y-0 left-0 z-30 hidden w-[264px] p-4 pr-0 lg:block">
+        <div className="h-full rounded-3xl bg-white">
+          <Navegacion />
+        </div>
       </aside>
-
       {menu && (
         <div className="fixed inset-0 z-40 lg:hidden" role="dialog" aria-modal="true" aria-label="Menú">
-          <div className="absolute inset-0 bg-carbon/60" onClick={() => setMenu(false)} />
-          <aside className="absolute inset-y-0 left-0 w-[268px] bg-carbon">
+          <div className="absolute inset-0 bg-carbon/50" onClick={() => setMenu(false)} />
+          <aside className="absolute inset-y-0 left-0 w-[272px] rounded-r-3xl bg-white">
             <button
               type="button"
               aria-label="Cerrar menú"
               onClick={() => setMenu(false)}
-              className="absolute right-3 top-6 rounded p-1.5 text-carbon-texto hover:text-white"
+              className="absolute right-3 top-5 flex h-10 w-10 items-center justify-center rounded-full text-gris hover:bg-suave hover:text-tinta"
             >
               <X className="h-5 w-5" />
             </button>
@@ -154,33 +146,32 @@ export default function Layout() {
           </aside>
         </div>
       )}
-
-      <div className="lg:pl-[248px]">
-        <header className="sticky top-0 z-20 flex h-16 items-center justify-between gap-4 border-b border-linea bg-white px-4 sm:px-8">
+      <div className="lg:pl-[264px]">
+        <header className="sticky top-0 z-20 flex h-[76px] items-center justify-between gap-4 bg-pagina/90 px-4 backdrop-blur sm:px-8">
           <div className="flex items-center gap-3">
             <button
               type="button"
               aria-label="Abrir menú"
               onClick={() => setMenu(true)}
-              className="-ml-1 rounded p-1.5 text-tinta hover:bg-fondo lg:hidden"
+              className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-white text-tinta lg:hidden"
             >
               <Menu className="h-5 w-5" />
             </button>
             <div className="lg:hidden">
-              <Logo claro={false} />
+              <Logo claro={false} className="h-7" />
             </div>
             <Reloj />
           </div>
-          <div className="flex items-center gap-3">
-            <label className="flex items-center gap-2 text-sm">
+          <div className="flex items-center gap-2.5">
+            <label className="flex h-11 items-center gap-2 rounded-full bg-white pl-4 pr-1.5 text-sm">
               <span className="hidden text-gris sm:inline">Atiende</span>
               <select
                 value={asesor}
                 onChange={(e) => setAsesor(e.target.value)}
                 aria-label="Quién está usando el sistema"
                 className={cx(
-                  'h-9 rounded-md border bg-white pl-3 pr-8 text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-tinta/10',
-                  asesor ? 'border-linea-fuerte text-tinta' : 'border-rojo text-rojo',
+                  'h-8 rounded-full border-0 bg-suave pl-3 pr-8 text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-tinta/10',
+                  asesor ? 'text-tinta' : 'text-rojo',
                 )}
               >
                 <option value="">¿Quién atiende?</option>
@@ -191,20 +182,19 @@ export default function Layout() {
             </label>
             <div
               title={usuario?.email}
-              className="flex h-9 w-9 items-center justify-center rounded-full bg-rojo font-display text-base font-bold text-white"
+              className="flex h-11 w-11 items-center justify-center rounded-full bg-rojo text-base font-bold text-white"
             >
               {(asesor || usuario?.nombre || '?').charAt(0).toUpperCase()}
             </div>
           </div>
         </header>
-
         {modo === 'demo' && (
-          <div className="border-b border-aviso/20 bg-aviso-suave px-4 py-2 text-[13px] text-aviso sm:px-8">
+          <div className="mx-4 mt-1 rounded-2xl bg-aviso-suave px-4 py-2.5 text-[13px] text-aviso sm:mx-8">
             Modo demostración: los datos se guardan solo en este navegador.<span className="hidden md:inline"> Conecta Firebase en el archivo .env.local para trabajar en la nube.</span>
           </div>
         )}
 
-        <main className="mx-auto max-w-[1360px] px-4 py-7 sm:px-8 sm:py-9">
+        <main className="mx-auto max-w-[1400px] px-4 pb-10 pt-4 sm:px-8">
           {listo && !asesor && listas.asesores.length > 0 && <ElegirAsesor nombres={listas.asesores} onElegir={setAsesor} />}
           {listo ? (
             <Outlet />
@@ -223,9 +213,8 @@ export default function Layout() {
 function ElegirAsesor({ nombres, onElegir }: { nombres: string[]; onElegir: (n: string) => void }) {
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-carbon/60 p-6" role="dialog" aria-modal="true" aria-label="Quién atiende">
-      <div className="w-full max-w-md rounded-xl bg-white p-6 shadow-modal">
-        <h2 className="font-display text-2xl font-bold uppercase tracking-tight">¿Quién está atendiendo?</h2>
-        <div className="mt-2 h-[3px] w-10 rounded-full bg-rojo" />
+      <div className="w-full max-w-md rounded-3xl bg-white p-7 shadow-modal">
+        <h2 className="text-2xl font-semibold tracking-tight">¿Quién está atendiendo?</h2>
         <p className="mt-3 text-sm text-gris">Tu nombre quedará en las citas y clientes que registres. Puedes cambiarlo arriba, en «Atiende».</p>
         <div className="mt-5 grid grid-cols-2 gap-2">
           {nombres.map((n) => (
@@ -233,7 +222,7 @@ function ElegirAsesor({ nombres, onElegir }: { nombres: string[]; onElegir: (n: 
               key={n}
               type="button"
               onClick={() => onElegir(n)}
-              className="rounded-md border border-linea-fuerte px-3 py-2.5 text-left text-sm font-semibold hover:border-tinta hover:bg-fondo"
+              className="rounded-xl border border-linea-fuerte px-3 py-3 text-left text-sm font-semibold hover:border-tinta hover:bg-suave"
             >
               {n}
             </button>

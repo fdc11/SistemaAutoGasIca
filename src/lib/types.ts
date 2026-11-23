@@ -107,6 +107,10 @@ export interface Ingreso extends Base {
   horaIngreso: string; // ISO
   horaSalida?: string; // ISO
   citaId?: string;
+  /** Se confirmó que sigue dentro aunque entró otro día (p. ej. una conversión de dos días). */
+  sigueDentro?: boolean;
+  /** La salida se registró después, al revisar ingresos de días anteriores: la hora no es la real. */
+  salidaTardia?: boolean;
 }
 
 export interface ServicioAceite extends Base {

@@ -7,7 +7,7 @@ export function SelectorAreas({ valor, onCambio, invalido }: { valor: string[]; 
   const { listas } = useDatos();
   const opciones = [...new Set([...listas.areasCliente, ...valor])];
   return (
-    <div className={cx('flex flex-wrap gap-1.5 rounded-md', invalido && 'ring-2 ring-rojo/40 ring-offset-2')}>
+    <div className={cx('flex flex-wrap gap-1.5 rounded-xl', invalido && 'ring-2 ring-rojo/40 ring-offset-2')}>
       {opciones.map((a) => {
         const on = valor.includes(a);
         return (
