@@ -8,7 +8,6 @@ import { useDatos } from '../data/store';
 import { cx } from '../lib/utils';
 import logoClaro from '../assets/logo-autogas.webp';
 import logoOscuro from '../assets/logo-autogas-oscuro.webp';
-import iconoMarca from '../assets/marca/icono-ag-96.webp';
 
 export function Logo({ claro = true, className }: { claro?: boolean; className?: string }) {
   return (
@@ -59,11 +58,10 @@ function Navegacion({ onIr }: { onIr?: () => void }) {
     );
   return (
     <div className="flex h-full flex-col">
-      <div className="flex items-center gap-3 px-5 pb-5 pt-5">
-        <img src={iconoMarca} alt="" width={42} height={42} className="h-[42px] w-[42px] rounded-xl" draggable={false} />
-        <span className="text-[18px] font-semibold tracking-tight text-white">AutoGas Ica</span>
+      <div className="px-6 pb-6 pt-7">
+        <Logo />
       </div>
-      <nav className="flex-1 overflow-y-auto px-3 pb-4" aria-label="Principal">
+      <nav className="flex-1 overflow-y-auto px-3 pb-4 [scrollbar-color:#3A3D44_transparent] [scrollbar-width:thin]" aria-label="Principal">
         {NAV.map((g, gi) => (
           <div key={gi} className={gi ? 'mt-4' : ''}>
             {g.grupo && <p className="mb-1.5 px-3 text-xs font-medium text-[#8C929B]">{g.grupo}</p>}
