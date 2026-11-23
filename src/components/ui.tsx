@@ -22,8 +22,8 @@ import type { Tono } from '../lib/catalogos';
 type Variante = 'primario' | 'secundario' | 'fantasma' | 'peligro';
 const VARIANTES: Record<Variante, string> = {
   primario: 'bg-rojo text-white hover:bg-rojo-osc disabled:bg-rojo/50',
-  secundario: 'bg-white text-tinta border border-linea-fuerte hover:bg-suave disabled:text-gris-claro',
-  fantasma: 'text-tinta hover:bg-suave disabled:text-gris-claro',
+  secundario: 'bg-white text-tinta border border-linea-fuerte hover:bg-fondo disabled:text-gris-claro',
+  fantasma: 'text-tinta hover:bg-fondo disabled:text-gris-claro',
   peligro: 'bg-white text-rojo border border-rojo/40 hover:bg-rojo-suave',
 };
 
@@ -36,8 +36,8 @@ export const Boton = forwardRef<
       ref={ref}
       type={type}
       className={cx(
-        'inline-flex items-center justify-center gap-2 rounded-xl font-semibold whitespace-nowrap transition-colors disabled:cursor-not-allowed',
-        tam === 'md' ? 'h-10 px-4 text-sm' : 'h-8 px-3 text-[13px] rounded-lg',
+        'inline-flex items-center justify-center gap-2 rounded-md font-semibold whitespace-nowrap transition-colors disabled:cursor-not-allowed',
+        tam === 'md' ? 'h-10 px-4 text-sm' : 'h-8 px-3 text-[13px]',
         VARIANTES[variante],
         className,
       )}
@@ -60,7 +60,7 @@ export function BotonIcono({
       type="button"
       aria-label={titulo}
       title={titulo}
-      className={cx('inline-flex h-9 w-9 items-center justify-center rounded-full text-gris hover:bg-suave hover:text-tinta', className)}
+      className={cx('inline-flex h-8 w-8 items-center justify-center rounded-md text-gris hover:bg-fondo hover:text-tinta', className)}
       {...p}
     >
       {children}
@@ -71,7 +71,7 @@ export function BotonIcono({
 /* ---------- Campos ---------- */
 
 const baseCampo =
-  'w-full rounded-xl border border-linea-fuerte bg-white px-3 text-sm text-tinta placeholder:text-gris-claro focus:border-tinta/60 focus:outline-none focus:ring-2 focus:ring-tinta/10 disabled:bg-fondo disabled:text-gris';
+  'w-full rounded-md border border-linea-fuerte bg-white px-3 text-sm text-tinta placeholder:text-gris-claro focus:border-tinta/60 focus:outline-none focus:ring-2 focus:ring-tinta/10 disabled:bg-fondo disabled:text-gris';
 
 export const Entrada = forwardRef<HTMLInputElement, InputHTMLAttributes<HTMLInputElement> & { invalido?: boolean }>(
   function Entrada({ className, invalido, ...p }, ref) {
@@ -187,10 +187,13 @@ export function Encabezado({
     <header className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
       <div className="min-w-0">
         {migas && <div className="mb-2 text-[13px] text-gris">{migas}</div>}
-        <h1 className="text-[28px] font-semibold leading-tight tracking-tight text-tinta sm:text-[30px]">{titulo}</h1>
-        {descripcion && <p className="mt-1.5 max-w-2xl text-[14.5px] text-gris">{descripcion}</p>}
+        <h1 className="font-display text-[32px] font-bold uppercase leading-none tracking-tight text-tinta sm:text-[38px]">
+          {titulo}
+        </h1>
+        <div className="mt-2.5 h-[3px] w-10 rounded-full bg-rojo" />
+        {descripcion && <p className="mt-3 max-w-2xl text-sm text-gris">{descripcion}</p>}
       </div>
-      {acciones && <div className="flex flex-wrap gap-2 sm:justify-end">{acciones}</div>}
+      {acciones && <div className="flex flex-wrap gap-2">{acciones}</div>}
     </header>
   );
 }
@@ -209,20 +212,20 @@ export function Panel({
   sinRelleno?: boolean;
 }) {
   return (
-    <section className={cx('rounded-3xl bg-white', className)}>
+    <section className={cx('rounded-lg border border-linea bg-white', className)}>
       {(titulo || acciones) && (
-        <div className="flex flex-wrap items-center justify-between gap-3 px-6 pb-3 pt-5">
-          {titulo && <h2 className="text-[17px] font-semibold tracking-tight text-tinta">{titulo}</h2>}
-          {acciones && <div className="flex flex-wrap items-center gap-2">{acciones}</div>}
+        <div className="flex items-center justify-between gap-3 border-b border-linea px-5 py-3.5">
+          {titulo && <h2 className="text-[15px] font-semibold text-tinta">{titulo}</h2>}
+          {acciones && <div className="flex items-center gap-2">{acciones}</div>}
         </div>
       )}
-      <div className={sinRelleno ? (titulo || acciones ? 'pb-3' : 'py-2') : titulo || acciones ? 'px-6 pb-6 pt-1' : 'p-6'}>{children}</div>
+      <div className={sinRelleno ? '' : 'p-5'}>{children}</div>
     </section>
   );
 }
 
 const TONOS: Record<Tono, string> = {
-  gris: 'bg-[#F0F0ED] text-[#4A4E55]',
+  gris: 'bg-[#EEEFF1] text-[#4B5059]',
   info: 'bg-info-suave text-info',
   aviso: 'bg-aviso-suave text-aviso',
   ok: 'bg-ok-suave text-ok',
@@ -266,8 +269,7 @@ export function Pestanas<T extends string>({
   className?: string;
 }) {
   return (
-    <div className={cx('flex overflow-x-auto py-1.5', className)}>
-    <div role="tablist" className="inline-flex shrink-0 gap-1 rounded-full bg-suave p-1">
+    <div role="tablist" className={cx('flex gap-1 overflow-x-auto border-b border-linea', className)}>
       {opciones.map((o) => (
         <button
           key={o.id}
@@ -276,19 +278,18 @@ export function Pestanas<T extends string>({
           aria-selected={valor === o.id}
           onClick={() => onCambio(o.id)}
           className={cx(
-            'flex h-9 items-center gap-2 whitespace-nowrap rounded-full px-3.5 text-[13.5px] font-semibold transition-colors',
-            valor === o.id ? 'bg-white text-tinta shadow-panel' : 'text-gris hover:text-tinta',
+            '-mb-px flex items-center gap-2 whitespace-nowrap border-b-2 px-3.5 py-2.5 text-sm font-semibold transition-colors',
+            valor === o.id ? 'border-rojo text-tinta' : 'border-transparent text-gris hover:text-tinta',
           )}
         >
           {o.nombre}
           {o.cuenta != null && (
-            <span className={cx('rounded-full px-1.5 text-xs', valor === o.id ? 'bg-tinta text-white' : 'bg-white/70 text-gris')}>
+            <span className={cx('rounded-full px-1.5 text-xs', valor === o.id ? 'bg-tinta text-white' : 'bg-fondo text-gris')}>
               {o.cuenta}
             </span>
           )}
         </button>
       ))}
-    </div>
     </div>
   );
 }
@@ -305,7 +306,7 @@ export function Tabla({ children, className, compacta }: { children: ReactNode; 
 export function Th({ children, className, ...p }: React.ThHTMLAttributes<HTMLTableCellElement>) {
   return (
     <th
-      className={cx('sticky top-0 z-[1] whitespace-nowrap border-b border-linea bg-white px-4 py-2.5 text-left text-[12.5px] font-medium text-gris', className)}
+      className={cx('sticky top-0 z-[1] whitespace-nowrap border-b border-linea bg-[#F8F9FA] px-4 py-2.5 text-left text-[12.5px] font-semibold text-gris', className)}
       {...p}
     >
       {children}
@@ -397,19 +398,19 @@ export function Modal({
         aria-modal="true"
         aria-label={titulo}
         onMouseDown={(e) => e.stopPropagation()}
-        className={cx('flex max-h-[calc(92vh/var(--z,1))] w-full flex-col rounded-t-3xl bg-white shadow-modal sm:rounded-3xl', anchos[ancho])}
+        className={cx('flex max-h-[92vh] w-full flex-col rounded-t-xl bg-white shadow-modal sm:rounded-xl', anchos[ancho])}
       >
-        <div className="flex items-start justify-between gap-4 px-6 pb-3 pt-5">
+        <div className="flex items-start justify-between gap-4 border-b border-linea px-6 py-4">
           <div>
-            <h2 className="text-xl font-semibold tracking-tight text-tinta">{titulo}</h2>
+            <h2 className="text-lg font-semibold text-tinta">{titulo}</h2>
             {descripcion && <p className="mt-0.5 text-sm text-gris">{descripcion}</p>}
           </div>
           <BotonIcono titulo="Cerrar" onClick={onCerrar}>
             <X className="h-4 w-4" />
           </BotonIcono>
         </div>
-        <div className="overflow-y-auto px-6 py-4">{children}</div>
-        {pie && <div className="flex justify-end gap-2 border-t border-linea px-6 py-4">{pie}</div>}
+        <div className="overflow-y-auto px-6 py-5">{children}</div>
+        {pie && <div className="flex justify-end gap-2 border-t border-linea px-6 py-3.5">{pie}</div>}
       </div>
     </div>,
     document.body,
@@ -435,7 +436,7 @@ export function AvisosProvider({ children }: { children: ReactNode }) {
         {avisos.map((a) => (
           <div
             key={a.id}
-            className="pointer-events-auto flex max-w-sm items-start gap-2.5 rounded-2xl bg-carbon px-4 py-3 text-sm text-white shadow-modal"
+            className="pointer-events-auto flex max-w-sm items-start gap-2.5 rounded-lg bg-carbon px-4 py-3 text-sm text-white shadow-modal"
           >
             {a.tipo === 'ok' ? (
               <Check className="mt-0.5 h-4 w-4 shrink-0 text-[#6FD3A0]" />

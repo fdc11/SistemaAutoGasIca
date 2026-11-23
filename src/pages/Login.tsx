@@ -65,7 +65,8 @@ export default function Login() {
         <Logo className="h-10 lg:h-12" />
 
         <div className="hidden max-w-lg lg:block">
-          <p className="text-[44px] font-semibold leading-[1.05] tracking-tight text-white">
+          <div className="mb-5 h-1 w-14 rounded-full bg-rojo" />
+          <p className="font-display text-[52px] font-bold uppercase leading-[0.92] tracking-tight text-white">
             Clientes, agenda y taller en un solo lugar
           </p>
           <p className="mt-5 max-w-md text-[15px] leading-relaxed text-white/75">
@@ -81,8 +82,9 @@ export default function Login() {
 
       <main className="flex items-start justify-center px-6 py-10 sm:py-14 lg:items-center lg:py-12">
         <div className="w-full max-w-[380px]">
-          <h1 className="text-[32px] font-semibold leading-tight tracking-tight text-tinta">Iniciar sesión</h1>
-          <p className="mt-2 text-sm text-gris">Entra con la cuenta del taller. Después eliges quién está atendiendo.</p>
+          <h1 className="font-display text-[34px] font-bold uppercase leading-none tracking-tight text-tinta">Iniciar sesión</h1>
+          <div className="mt-2.5 h-[3px] w-10 rounded-full bg-rojo" />
+          <p className="mt-4 text-sm text-gris">Entra con la cuenta del taller. Después eliges quién está atendiendo.</p>
 
           <form onSubmit={enviar} className="mt-8 space-y-5" noValidate>
             <Campo etiqueta="Correo">
@@ -108,8 +110,8 @@ export default function Login() {
               </div>
             </Campo>
 
-            {error && <p className="rounded-xl bg-rojo-suave px-3 py-2.5 text-sm text-rojo-osc">{error}</p>}
-            {aviso && <p className="rounded-xl bg-ok-suave px-3 py-2.5 text-sm text-ok">{aviso}</p>}
+            {error && <p className="rounded-md bg-rojo-suave px-3 py-2.5 text-sm text-rojo-osc">{error}</p>}
+            {aviso && <p className="rounded-md bg-ok-suave px-3 py-2.5 text-sm text-ok">{aviso}</p>}
 
             <Boton type="submit" className="w-full" disabled={enviando}>
               {enviando ? 'Entrando…' : 'Entrar'}

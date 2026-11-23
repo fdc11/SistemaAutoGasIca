@@ -2,7 +2,7 @@ import { useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { differenceInMinutes, format, parseISO } from 'date-fns';
 import { es } from 'date-fns/locale';
-import { AlertTriangle, CheckCheck, Droplet, LogIn, Wrench, Car } from 'lucide-react';
+import { LogIn, Wrench } from 'lucide-react';
 import { useDatos, useActivos } from '../data/store';
 import { useAcciones } from '../data/acciones';
 import { AREAS, nombreArea } from '../lib/catalogos';
@@ -12,13 +12,13 @@ import { ahoraISO, cx, fechaCorta, horaDe, hoyISO, normalizarPlaca, placaValida 
 import { Boton, Campo, Encabezado, Entrada, Etiqueta, Modal, Panel, Selector, Tabla, Td, Th, Vacio, useAvisos } from '../components/ui';
 import { BotonesExcel } from '../components/BotonesExcel';
 
+/** Ingresó otro día y todavía no tiene salida. */
+const deDiaAnterior = (i: Ingreso, hoy: string) => !i.horaSalida && i.horaIngreso.slice(0, 10) < hoy;
+
 const duracion = (a: string, b?: string) => {
   const m = differenceInMinutes(b ? parseISO(b) : new Date(), parseISO(a));
   return m < 60 ? `${m} min` : `${Math.floor(m / 60)} h ${m % 60} min`;
 };
-
-/** Ingresó otro día y todavía no tiene salida. */
-const deDiaAnterior = (i: Ingreso, hoy: string) => !i.horaSalida && i.horaIngreso.slice(0, 10) < hoy;
 
 export default function Taller() {
   const ingresos = useActivos('ingresos');
@@ -26,8 +26,8 @@ export default function Taller() {
   const avisar = useAvisos();
   const [fecha, setFecha] = useState(hoyISO());
   const [nuevo, setNuevo] = useState(false);
-  const hoy = hoyISO();
 
+  const hoy = hoyISO();
   // Dentro del taller: lo que entró hoy sin salida, más lo de días anteriores que alguien confirmó que sigue dentro.
   const enTaller = useMemo(
     () => ingresos.filter((i) => !i.horaSalida && (!deDiaAnterior(i, hoy) || i.sigueDentro)).sort((a, b) => a.horaIngreso.localeCompare(b.horaIngreso)),
@@ -39,10 +39,17 @@ export default function Taller() {
     [ingresos, hoy],
   );
   const delDia = useMemo(
-    () => ingresos.filter((i) => i.horaIngreso.slice(0, 10) === fecha || (!i.salidaTardia && (i.horaSalida ?? '').slice(0, 10) === fecha)).sort((a, b) => b.horaIngreso.localeCompare(a.horaIngreso)),
+    () =>
+      ingresos
+        .filter((i) => i.horaIngreso.slice(0, 10) === fecha || (!i.salidaTardia && (i.horaSalida ?? '').slice(0, 10) === fecha))
+        .sort((a, b) => b.horaIngreso.localeCompare(a.horaIngreso)),
     [ingresos, fecha],
   );
-  const salieronHoy = ingresos.filter((i) => (i.horaSalida ?? '').slice(0, 10) === hoy && !i.salidaTardia).length;
+
+  const sigue = async (i: Ingreso) => {
+    await editar('ingresos', i.id, { sigueDentro: true });
+    avisar(`${i.placa} sigue en el taller.`);
+  };
 
   const salida = async (i: Ingreso, tardia = false) => {
     await editar('ingresos', i.id, tardia ? { horaSalida: ahoraISO(), salidaTardia: true } : { horaSalida: ahoraISO() });
@@ -50,17 +57,6 @@ export default function Taller() {
     if (cliente && cliente.estado !== 'atendido') await editar('clientes', cliente.id, { estado: 'atendido' });
     avisar(`${i.placa} salió del taller.`);
   };
-  const sigue = async (i: Ingreso) => {
-    await editar('ingresos', i.id, { sigueDentro: true });
-    avisar(`${i.placa} sigue en el taller.`);
-  };
-
-  const indicadores = [
-    { etiqueta: 'En el taller ahora', valor: enTaller.length, icono: <Wrench />, oscuro: true },
-    { etiqueta: nombreArea('mecanica'), valor: enTaller.filter((i) => i.area === 'mecanica').length, icono: <Car /> },
-    { etiqueta: nombreArea('gas'), valor: enTaller.filter((i) => i.area === 'gas').length, icono: <Droplet /> },
-    { etiqueta: 'Salieron hoy', valor: salieronHoy, icono: <CheckCheck /> },
-  ];
 
   return (
     <>
@@ -77,53 +73,38 @@ export default function Taller() {
         }
       />
 
-      <section className="mb-4 grid grid-cols-2 gap-4 xl:grid-cols-4">
-        {indicadores.map((k) => (
-          <div key={k.etiqueta} className={cx('flex min-h-[140px] flex-col gap-3 rounded-3xl p-5 sm:px-6', k.oscuro ? 'bg-carbon text-white' : 'bg-white')}>
-            <span className={cx('flex h-11 w-11 items-center justify-center rounded-xl [&>svg]:h-5 [&>svg]:w-5', k.oscuro ? 'bg-carbon-3' : 'bg-suave')}>{k.icono}</span>
-            <p className={cx('mt-auto text-sm', k.oscuro ? 'text-[#C9CBC6]' : 'text-gris')}>{k.etiqueta}</p>
-            <p className="text-[30px] font-semibold leading-none tracking-tight num">{k.valor}</p>
-          </div>
-        ))}
-      </section>
-
       {sinCerrar.length > 0 && (
-        <div role="status" className="mb-4 flex flex-wrap items-center gap-x-4 gap-y-3 rounded-3xl bg-aviso-suave py-2.5 pl-3 pr-2.5 text-[#5C3600] sm:rounded-full">
-          <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-white text-aviso">
-            <AlertTriangle className="h-[18px] w-[18px]" />
+        <p className="mb-5 flex flex-wrap items-center gap-x-3 gap-y-1 rounded-lg border border-aviso/20 bg-aviso-suave px-4 py-3 text-sm text-aviso">
+          <span className="font-semibold">
+            {sinCerrar.length === 1 ? '1 vehículo de días anteriores no tiene' : `${sinCerrar.length} vehículos de días anteriores no tienen`} salida registrada.
           </span>
-          <p className="min-w-[220px] flex-1 text-sm">
-            <b>
-              {sinCerrar.length === 1 ? '1 vehículo de días anteriores no tiene' : `${sinCerrar.length} vehículos de días anteriores no tienen`} salida registrada.
-            </b>{' '}
-            Ya no aparecen como dentro del taller.
-          </p>
-          <a href="#sin-salida" className="flex h-10 items-center rounded-full bg-carbon px-4 text-[13.5px] font-semibold text-white hover:bg-carbon-2">
+          <span>Ya no aparecen como dentro del taller.</span>
+          <a href="#sin-salida" className="font-semibold underline">
             Revisar
           </a>
-        </div>
+        </p>
       )}
 
-      <div className="mb-4 grid gap-4 lg:grid-cols-2">
+      <div className="mb-5 grid gap-5 lg:grid-cols-2">
         {AREAS.map((a) => {
           const lista = enTaller.filter((i) => i.area === a.id);
           return (
-            <Panel key={a.id} titulo={a.nombre} acciones={<Etiqueta>{lista.length} en taller</Etiqueta>} sinRelleno>
+            <Panel key={a.id} titulo={`${a.nombre} · ${lista.length} en taller`} sinRelleno>
               {lista.length === 0 ? (
-                <p className="px-6 py-6 text-sm text-gris">No hay vehículos en esta área.</p>
+                <p className="px-5 py-6 text-sm text-gris">No hay vehículos en esta área.</p>
               ) : (
-                <ul className="px-6">
+                <ul className="divide-y divide-linea">
                   {lista.map((i) => (
-                    <li key={i.id} className="flex flex-wrap items-center gap-x-4 gap-y-2 border-t border-linea py-3.5">
-                      <span className="rounded-lg border-[1.5px] border-tinta px-2 py-0.5 font-display text-lg font-semibold tracking-wide num">{i.placa}</span>
+                    <li key={i.id} className="flex flex-wrap items-center gap-x-4 gap-y-2 px-5 py-3.5">
+                      <span className="rounded border border-linea-fuerte px-2 py-0.5 font-display text-lg font-semibold tracking-wide num">{i.placa}</span>
                       <div className="min-w-0 flex-1">
-                        <p className="truncate text-sm font-semibold">{i.servicio}</p>
+                        <p className="truncate text-sm font-medium">{i.servicio}</p>
                         <p className="text-[13px] text-gris">
                           {[i.marcaModelo, i.tecnico ? `Técnico: ${i.tecnico}` : 'Sin técnico'].filter(Boolean).join(' · ')}
                         </p>
                       </div>
                       <div className="text-right text-[13px]">
-                        <p className="font-semibold num">
+                        <p className="font-medium num">
                           Entró {i.horaIngreso.slice(0, 10) === hoy ? horaDe(i.horaIngreso) : `${fechaCorta(i.horaIngreso.slice(0, 10))}, ${horaDe(i.horaIngreso)}`}
                         </p>
                         <p className="text-gris num">{duracion(i.horaIngreso)}</p>
@@ -148,7 +129,7 @@ export default function Taller() {
         {delDia.length === 0 ? (
           <Vacio icono={<Wrench className="h-8 w-8" />} titulo={`Sin ingresos el ${fechaCorta(fecha)}`} texto="Los ingresos se registran aquí o desde una cita de la agenda." />
         ) : (
-          <Tabla className="px-2">
+          <Tabla>
             <thead>
               <tr>
                 <Th>Placa</Th>
@@ -172,13 +153,9 @@ export default function Taller() {
                   <Td className="num">{horaDe(i.horaIngreso)}</Td>
                   <Td className="num">
                     {i.horaSalida ? (
-                      i.salidaTardia ? (
-                        <span className="text-gris">Sin hora</span>
-                      ) : (
-                        horaDe(i.horaSalida)
-                      )
+                      i.salidaTardia ? <span className="text-gris">Sin hora</span> : horaDe(i.horaSalida)
                     ) : deDiaAnterior(i, hoy) && !i.sigueDentro ? (
-                      <Etiqueta tono="gris">Sin salida</Etiqueta>
+                      <Etiqueta>Sin salida</Etiqueta>
                     ) : (
                       <Etiqueta tono="aviso">En taller</Etiqueta>
                     )}
@@ -192,28 +169,29 @@ export default function Taller() {
       </Panel>
 
       {sinCerrar.length > 0 && (
-        <section id="sin-salida" className="mt-4 scroll-mt-24 rounded-3xl bg-white px-6 pb-6 pt-5">
-          <h2 className="text-[17px] font-semibold tracking-tight">Sin salida registrada de días anteriores</h2>
-          <p className="mt-1 text-[13.5px] text-gris">
-            Se quedaron abiertos porque nadie marcó la salida. Si el carro ya no está, registra la salida. Si sigue dentro (por ejemplo, una conversión de varios días), vuelve a la lista de arriba.
-          </p>
-          <ul className="mt-4 space-y-2">
-            {sinCerrar.map((i) => (
-              <li key={i.id} className="flex flex-wrap items-center gap-x-4 gap-y-2 rounded-2xl bg-suave px-4 py-3">
-                <span className="font-display text-lg font-semibold tracking-wide num">{i.placa}</span>
-                <span className="min-w-[200px] flex-1 text-[13.5px] text-[#4A4E55]">
-                  Entró el {format(parseISO(i.horaIngreso), "EEEE d 'de' MMMM, HH:mm", { locale: es })} · {i.servicio} · {nombreArea(i.area)}
-                </span>
-                <Boton tam="sm" variante="secundario" onClick={() => sigue(i)}>
-                  Sigue en el taller
-                </Boton>
-                <Boton tam="sm" onClick={() => salida(i, true)}>
-                  Registrar salida
-                </Boton>
-              </li>
-            ))}
-          </ul>
-        </section>
+        <div id="sin-salida" className="mt-5 scroll-mt-24">
+          <Panel titulo="Sin salida registrada de días anteriores" sinRelleno>
+            <p className="px-5 pt-4 text-[13px] text-gris">
+              Se quedaron abiertos porque nadie marcó la salida. Si el carro ya no está, registra la salida. Si sigue dentro (por ejemplo, una conversión de varios días), vuelve a la lista de arriba.
+            </p>
+            <ul className="mt-2 divide-y divide-linea">
+              {sinCerrar.map((i) => (
+                <li key={i.id} className="flex flex-wrap items-center gap-x-4 gap-y-2 px-5 py-3.5">
+                  <span className="rounded border border-linea-fuerte px-2 py-0.5 font-display text-lg font-semibold tracking-wide num">{i.placa}</span>
+                  <p className="min-w-[200px] flex-1 text-[13px] text-gris">
+                    Entró el {format(parseISO(i.horaIngreso), "EEEE d 'de' MMMM, HH:mm", { locale: es })} · {i.servicio} · {nombreArea(i.area)}
+                  </p>
+                  <Boton tam="sm" variante="secundario" onClick={() => sigue(i)}>
+                    Sigue en el taller
+                  </Boton>
+                  <Boton tam="sm" onClick={() => salida(i, true)}>
+                    Registrar salida
+                  </Boton>
+                </li>
+              ))}
+            </ul>
+          </Panel>
+        </div>
       )}
 
       {nuevo && <NuevoIngreso onCerrar={() => setNuevo(false)} />}
@@ -269,7 +247,7 @@ function NuevoIngreso({ onCerrar }: { onCerrar: () => void }) {
           <Entrada value={placa} onChange={(e) => setPlaca(e.target.value.toUpperCase())} />
         </Campo>
         {placaValida(p) && (
-          <p className={cx('rounded-xl bg-fondo px-3 py-2 text-sm sm:col-span-2', !cliente && 'text-gris')}>
+          <p className={cx('rounded-md bg-fondo px-3 py-2 text-sm sm:col-span-2', !cliente && 'text-gris')}>
             {cliente ? (
               <>
                 {cliente.nombre} · {[vehiculo?.marca, vehiculo?.modelo].filter(Boolean).join(' ')}
@@ -310,7 +288,7 @@ function NuevoIngreso({ onCerrar }: { onCerrar: () => void }) {
           </Selector>
         </Campo>
       </div>
-      {error && <p className="mt-4 rounded-xl bg-rojo-suave px-3 py-2 text-sm text-rojo-osc">{error}</p>}
+      {error && <p className="mt-4 rounded-md bg-rojo-suave px-3 py-2 text-sm text-rojo-osc">{error}</p>}
     </Modal>
   );
 }

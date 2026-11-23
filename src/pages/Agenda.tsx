@@ -231,7 +231,7 @@ export default function Agenda() {
         <button
           type="button"
           onClick={() => setBloqueo(bl)}
-          className="flex h-full min-h-[92px] w-full flex-col items-start gap-1 rounded-xl border border-dashed border-linea-fuerte bg-[repeating-linear-gradient(135deg,#F2F3F5_0,#F2F3F5_6px,#fff_6px,#fff_12px)] p-2 text-left"
+          className="flex h-full min-h-[92px] w-full flex-col items-start gap-1 rounded-md border border-dashed border-linea-fuerte bg-[repeating-linear-gradient(135deg,#F2F3F5_0,#F2F3F5_6px,#fff_6px,#fff_12px)] p-2 text-left"
         >
           <span className="flex items-center gap-1 text-xs font-semibold text-gris">
             <Lock className="h-3 w-3" /> Bloqueado
@@ -250,7 +250,7 @@ export default function Agenda() {
           const avisable = pendiente && fecha >= hoyISO() && cliente?.celular;
           const sinCelular = pendiente && fecha >= hoyISO() && !cliente?.celular && !llegoONo;
           return (
-            <div key={c.id} className={cx('group/cita relative rounded-xl border transition-colors hover:border-tinta/40', TONO_CITA[c.estado])}>
+            <div key={c.id} className={cx('group/cita relative rounded-md border transition-colors hover:border-tinta/40', TONO_CITA[c.estado])}>
               <button type="button" onClick={() => setAbierta(c)} className="block w-full px-2 pb-1.5 pt-1.5 text-left">
                 <span className="block truncate text-[13px] font-semibold leading-tight text-tinta">{nombre ?? <span className="font-display text-[15px] tracking-wide num">{c.placa || (cliente?.celular ? formatoCelular(cliente.celular) : 'Sin datos')}</span>}</span>
                 <span className="mt-0.5 block truncate text-xs text-tinta/80">
@@ -319,7 +319,7 @@ export default function Agenda() {
           <button
             type="button"
             onClick={() => setHueco({ fecha, hora, area: ar })}
-            className="group flex min-h-[28px] flex-1 items-center justify-center rounded-xl border border-dashed border-transparent text-linea-fuerte hover:border-rojo hover:bg-rojo-suave/40 hover:text-rojo focus-visible:border-rojo"
+            className="group flex min-h-[28px] flex-1 items-center justify-center rounded-md border border-dashed border-transparent text-linea-fuerte hover:border-rojo hover:bg-rojo-suave/40 hover:text-rojo focus-visible:border-rojo"
             aria-label={`Agendar ${fecha} ${hora} ${nombreArea(ar)}`}
           >
             <Plus className="h-4 w-4" />
@@ -347,13 +347,13 @@ export default function Agenda() {
               <span className="ml-0.5 rounded-full bg-rojo px-1.5 text-xs font-bold leading-5 text-white num">{pendientesRecordar}</span>
             )}
           </Boton>
-          <div className="flex rounded-full bg-carbon p-1">
+          <div className="flex rounded-md border border-linea-fuerte bg-white p-0.5">
             {(['dia', 'semana'] as Vista[]).map((v) => (
               <button
                 key={v}
                 type="button"
                 onClick={() => setVista(v)}
-                className={cx('rounded-full px-4 py-1.5 text-sm font-semibold', vista === v ? 'bg-white text-tinta' : 'text-white/80 hover:text-white')}
+                className={cx('rounded px-3.5 py-1.5 text-sm font-semibold', vista === v ? 'bg-carbon text-white' : 'text-gris hover:text-tinta')}
               >
                 {v === 'dia' ? 'Día' : 'Semana'}
               </button>
@@ -364,7 +364,7 @@ export default function Agenda() {
       />
 
       <Panel sinRelleno>
-        <div className="flex flex-wrap items-center justify-between gap-3 px-5 py-3">
+        <div className="flex flex-wrap items-center justify-between gap-3 border-b border-linea px-4 py-3">
           <div className="flex items-center gap-1">
             <BotonIcono titulo="Anterior" onClick={() => mover(-paso)}>
               <ChevronLeft className="h-4 w-4" />
@@ -372,7 +372,7 @@ export default function Agenda() {
             <BotonIcono titulo="Siguiente" onClick={() => mover(paso)}>
               <ChevronRight className="h-4 w-4" />
             </BotonIcono>
-            <h2 className="ml-2 text-[19px] font-semibold tracking-tight first-letter:uppercase">{titulo}</h2>
+            <h2 className="ml-2 text-[15px] font-semibold first-letter:uppercase">{titulo}</h2>
           </div>
           <div className="flex flex-wrap items-center gap-2">
             <BuscarCita
@@ -398,8 +398,8 @@ export default function Agenda() {
               onCambio={setArea}
               opciones={AREAS.map((a) => ({ id: a.id, nombre: a.nombre, cuenta: deSemana(a.id) }))}
             />
-            <div className="overflow-x-auto px-4">
-              <div className="grid min-w-[960px] grid-cols-[64px_repeat(6,minmax(0,1fr))] overflow-hidden rounded-2xl border border-linea">
+            <div className="overflow-x-auto">
+              <div className="grid min-w-[960px] grid-cols-[64px_repeat(6,minmax(0,1fr))]">
                 <div className="border-b border-linea" />
                 {dias.map((d) => (
                   <div key={d} className={cx('border-b border-l border-linea px-2 py-2.5 text-center', d === hoyISO() && 'bg-rojo-suave/50')}>
@@ -427,11 +427,11 @@ export default function Agenda() {
             </div>
           </>
         ) : (
-          <div className="overflow-x-auto px-4">
+          <div className="overflow-x-auto">
             {movil && (
               <Pestanas className="px-4" valor={area} onCambio={setArea} opciones={AREAS.map((a) => ({ id: a.id, nombre: a.nombre, cuenta: delDia(ancla, a.id) }))} />
             )}
-            <div className={cx('grid overflow-hidden rounded-2xl border border-linea', movil ? 'grid-cols-[56px_minmax(0,1fr)]' : 'min-w-[560px] grid-cols-[64px_repeat(2,minmax(0,1fr))]')}>
+            <div className={cx('grid', movil ? 'grid-cols-[56px_minmax(0,1fr)]' : 'min-w-[560px] grid-cols-[64px_repeat(2,minmax(0,1fr))]')}>
               {!movil && <div className="border-b border-linea" />}
               {!movil && AREAS.map((a) => (
                 <div key={a.id} className="border-b border-l border-linea px-3 py-2.5">
@@ -453,7 +453,7 @@ export default function Agenda() {
           </div>
         )}
 
-        <div className="flex flex-wrap gap-4 px-5 py-3 text-xs text-gris">
+        <div className="flex flex-wrap gap-4 px-4 py-3 text-xs text-gris">
           {ESTADOS_CITA.map((e) => (
             <span key={e.id} className="flex items-center gap-1.5">
               <span className={cx('h-3 w-3 rounded-sm border', TONO_CITA[e.id])} /> {e.nombre}
@@ -512,7 +512,7 @@ function BuscarCita({ citas, onElegir }: { citas: Cita[]; onElegir: (c: Cita) =>
         aria-label="Buscar cita"
       />
       {abierto && plano(q).length >= 2 && (
-        <div className="absolute right-0 z-30 mt-1 w-80 overflow-hidden rounded-xl border border-linea bg-white shadow-modal">
+        <div className="absolute right-0 z-30 mt-1 w-80 overflow-hidden rounded-md border border-linea bg-white shadow-modal">
           {resultados.length === 0 ? (
             <p className="px-3 py-3 text-sm text-gris">No hay citas que coincidan.</p>
           ) : (
@@ -603,7 +603,7 @@ function Recordatorios({ citas, fecha, onCerrar }: { citas: Cita[]; fecha: strin
           <p className="mb-3 text-[13px] text-gris">
             Pulsa «Enviar» en cada cliente: se abre WhatsApp con el mensaje ya escrito y solo tienes que darle enviar. El sistema marca quién ya fue avisado.
           </p>
-          <ul className="divide-y divide-linea rounded-xl border border-linea">
+          <ul className="divide-y divide-linea rounded-md border border-linea">
             {filas.map((c) => {
               const { cliente } = deCita(c);
               const nombre = nombreVisible(cliente);
@@ -626,7 +626,7 @@ function Recordatorios({ citas, fecha, onCerrar }: { citas: Cita[]; fecha: strin
                       rel="noreferrer"
                       onClick={() => void editar('citas', c.id, { recordadoEn: ahoraISO() })}
                       className={cx(
-                        'inline-flex h-8 items-center gap-1.5 rounded-xl border px-3 text-sm font-semibold',
+                        'inline-flex h-8 items-center gap-1.5 rounded-md border px-3 text-sm font-semibold',
                         c.recordadoEn ? 'border-ok/30 bg-ok-suave text-ok' : 'border-linea-fuerte bg-white text-tinta hover:border-tinta',
                       )}
                     >
@@ -835,12 +835,12 @@ function NuevaCita({ hueco, onCerrar }: { hueco: Hueco; onCerrar: () => void }) 
             target="_blank"
             rel="noreferrer"
             onClick={() => void editar('citas', hecho.cita.id, { confirmadoEn: ahoraISO() })}
-            className="mt-5 flex h-10 w-full items-center justify-center gap-2 rounded-xl bg-[#1E7B4F] text-sm font-semibold text-white hover:bg-[#186641]"
+            className="mt-5 flex h-10 w-full items-center justify-center gap-2 rounded-md bg-[#1E7B4F] text-sm font-semibold text-white hover:bg-[#186641]"
           >
             <MessageCircle className="h-4 w-4" /> Enviar confirmación por WhatsApp
           </a>
         ) : (
-          <p className="mt-5 rounded-xl bg-aviso-suave px-3 py-2 text-[13px] text-aviso">
+          <p className="mt-5 rounded-md bg-aviso-suave px-3 py-2 text-[13px] text-aviso">
             No tiene celular: no se le podrá enviar confirmación ni recordatorio.
           </p>
         )}
@@ -865,7 +865,7 @@ function NuevaCita({ hueco, onCerrar }: { hueco: Hueco; onCerrar: () => void }) 
         </>
       }
     >
-      <div className="mb-5 grid grid-cols-2 gap-1 rounded-xl bg-fondo p-1">
+      <div className="mb-5 grid grid-cols-2 gap-1 rounded-md bg-fondo p-1">
         {(['cita', 'bloqueo'] as const).map((m) => (
           <button
             key={m}
@@ -884,7 +884,7 @@ function NuevaCita({ hueco, onCerrar }: { hueco: Hueco; onCerrar: () => void }) 
         <div className="space-y-4">
           {/* 1. Cliente: buscar uno existente o escribir uno nuevo */}
           {elegido ? (
-            <div className="flex items-center gap-3 rounded-xl border border-ok/30 bg-ok-suave px-3 py-2.5">
+            <div className="flex items-center gap-3 rounded-md border border-ok/30 bg-ok-suave px-3 py-2.5">
               <UserCheck className="h-4 w-4 shrink-0 text-ok" />
               <div className="min-w-0 flex-1 text-sm">
                 <p className="truncate font-semibold">{nombreVisible(elegido) ?? 'Cliente sin nombre'}</p>
@@ -907,7 +907,7 @@ function NuevaCita({ hueco, onCerrar }: { hueco: Hueco; onCerrar: () => void }) 
                 </div>
               </Campo>
               {busqueda.trim().length >= 2 && (
-                <div className="absolute left-0 right-0 top-[68px] z-10 overflow-hidden rounded-xl border border-linea bg-white shadow-modal">
+                <div className="absolute left-0 right-0 top-[68px] z-10 overflow-hidden rounded-md border border-linea bg-white shadow-modal">
                   {coincidencias.length === 0 ? (
                     <p className="px-3 py-2.5 text-sm text-gris">No está en la base. Llena sus datos abajo y se registrará solo.</p>
                   ) : (
@@ -972,7 +972,7 @@ function NuevaCita({ hueco, onCerrar }: { hueco: Hueco; onCerrar: () => void }) 
           </div>
 
           {yaExiste && (
-            <div className="flex items-center gap-3 rounded-xl bg-info-suave px-3 py-2.5 text-sm">
+            <div className="flex items-center gap-3 rounded-md bg-info-suave px-3 py-2.5 text-sm">
               <UserCheck className="h-4 w-4 shrink-0 text-info" />
               <p className="min-w-0 flex-1">
                 Ya está en la base: <span className="font-semibold">{nombreVisible(yaExiste) ?? 'cliente sin nombre'}</span>
@@ -985,7 +985,7 @@ function NuevaCita({ hueco, onCerrar }: { hueco: Hueco; onCerrar: () => void }) 
           )}
 
           {otraCita && (
-            <div className="flex items-start gap-2 rounded-xl bg-aviso-suave px-3 py-2.5 text-[13px] text-aviso">
+            <div className="flex items-start gap-2 rounded-md bg-aviso-suave px-3 py-2.5 text-[13px] text-aviso">
               <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />
               <p>
                 Ya tiene otra cita pendiente: <span className="font-semibold first-letter:uppercase">{fechaTexto(otraCita.fecha)}</span> a las{' '}
@@ -1026,7 +1026,7 @@ function NuevaCita({ hueco, onCerrar }: { hueco: Hueco; onCerrar: () => void }) 
           <Entrada value={motivo} onChange={(e) => setMotivo(e.target.value)} />
         </Campo>
       )}
-      {error && <p className="mt-4 rounded-xl bg-rojo-suave px-3 py-2 text-sm text-rojo-osc">{error}</p>}
+      {error && <p className="mt-4 rounded-md bg-rojo-suave px-3 py-2 text-sm text-rojo-osc">{error}</p>}
     </Modal>
   );
 }
@@ -1077,7 +1077,7 @@ function CompletarCliente({ cita, cliente: recibido }: { cita: Cita; cliente?: C
   };
 
   return (
-    <div className="mt-5 rounded-xl border border-aviso/30 bg-aviso-suave/60 p-3">
+    <div className="mt-5 rounded-md border border-aviso/30 bg-aviso-suave/60 p-3">
       <p className="mb-2.5 flex items-center gap-1.5 text-[13px] font-semibold text-aviso">
         <Phone className="h-3.5 w-3.5" /> {cliente ? 'Falta el celular para poder recordarle' : 'Esta cita no tiene cliente: completa sus datos'}
       </p>
@@ -1267,7 +1267,7 @@ function EditarCita({ cita, cliente, onListo, onCancelar }: { cita: Cita; client
           <AreaTexto value={notas} onChange={(e) => setNotas(e.target.value)} className="min-h-[64px]" />
         </Campo>
       </div>
-      {error && <p className="mt-4 rounded-xl bg-rojo-suave px-3 py-2 text-sm text-rojo-osc">{error}</p>}
+      {error && <p className="mt-4 rounded-md bg-rojo-suave px-3 py-2 text-sm text-rojo-osc">{error}</p>}
     </Modal>
   );
 }

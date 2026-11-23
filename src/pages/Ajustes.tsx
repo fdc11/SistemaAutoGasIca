@@ -358,7 +358,7 @@ function EditorLista({ titulo, ayuda, valores, onGuardar }: { titulo: string; ay
       <ul className="mb-3 flex flex-wrap gap-1.5">
         {valores.length === 0 && <li className="text-sm text-gris-claro">Lista vacía</li>}
         {valores.map((v) => (
-          <li key={v} className="flex items-center gap-1 rounded-xl border border-linea bg-fondo py-1 pl-2.5 pr-1 text-sm">
+          <li key={v} className="flex items-center gap-1 rounded-md border border-linea bg-fondo py-1 pl-2.5 pr-1 text-sm">
             {v}
             <BotonIcono titulo={`Quitar ${v}`} className="h-6 w-6" onClick={() => onGuardar(valores.filter((x) => x !== v))}>
               <X className="h-3.5 w-3.5" />

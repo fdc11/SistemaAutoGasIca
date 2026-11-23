@@ -416,7 +416,7 @@ function FormServicio({ servicio, onCerrar }: { servicio?: ServicioAceite; onCer
           <Entrada type="date" value={f.fecha} max={hoyISO()} onChange={(e) => set('fecha', e.target.value)} />
         </Campo>
         {placaValida(p) && (
-          <div className="rounded-xl bg-fondo px-3 py-2.5 text-sm sm:col-span-2">
+          <div className="rounded-md bg-fondo px-3 py-2.5 text-sm sm:col-span-2">
             {cliente ? (
               <>
                 <span className="font-semibold">{cliente.nombre}</span>
@@ -459,7 +459,7 @@ function FormServicio({ servicio, onCerrar }: { servicio?: ServicioAceite; onCer
           El cliente no quiso dar su número
         </label>
       </div>
-      {error && <p className="mt-4 rounded-xl bg-rojo-suave px-3 py-2 text-sm text-rojo-osc">{error}</p>}
+      {error && <p className="mt-4 rounded-md bg-rojo-suave px-3 py-2 text-sm text-rojo-osc">{error}</p>}
     </Modal>
   );
 }
@@ -507,7 +507,7 @@ function FormRespuesta({ ficha, onCerrar }: { ficha: FichaAceite; onCerrar: () =
               key={x}
               type="button"
               onClick={() => setR(x)}
-              className={cx('rounded-xl border px-3 py-2 text-left text-sm font-medium', r === x ? 'border-rojo bg-rojo-suave text-rojo-osc' : 'border-linea-fuerte hover:border-tinta')}
+              className={cx('rounded-md border px-3 py-2 text-left text-sm font-medium', r === x ? 'border-rojo bg-rojo-suave text-rojo-osc' : 'border-linea-fuerte hover:border-tinta')}
             >
               {x}
             </button>
