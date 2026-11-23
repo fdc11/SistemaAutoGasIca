@@ -306,7 +306,7 @@ export default function Agenda() {
                         c.recordadoEn ? 'text-ok hover:bg-white/70' : 'text-tinta hover:bg-white/70',
                       )}
                     >
-                      {c.recordadoEn ? <Check className="h-3.5 w-3.5" /> : <MessageCircle className="h-3.5 w-3.5" />}
+                      {c.recordadoEn ? <Check className="h-3.5 w-3.5" /> : <MessageCircle className="h-3.5 w-3.5 text-ok" />}
                       {c.recordadoEn ? 'Recordado' : 'Recordar'}
                     </a>
                   )}
@@ -630,7 +630,7 @@ function Recordatorios({ citas, fecha, onCerrar }: { citas: Cita[]; fecha: strin
                         c.recordadoEn ? 'border-ok/30 bg-ok-suave text-ok' : 'border-linea-fuerte bg-white text-tinta hover:border-tinta',
                       )}
                     >
-                      {c.recordadoEn ? <Check className="h-4 w-4" /> : <MessageCircle className="h-4 w-4" />}
+                      {c.recordadoEn ? <Check className="h-4 w-4" /> : <MessageCircle className="h-4 w-4 text-ok" />}
                       {c.recordadoEn ? 'Enviado' : 'Enviar'}
                     </a>
                   )}

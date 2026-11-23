@@ -242,7 +242,7 @@ export default function Clientes() {
                             rel="noreferrer"
                             aria-label={`Escribir a ${c.nombre} por WhatsApp`}
                             title="Escribir por WhatsApp"
-                            className="inline-flex h-8 w-8 items-center justify-center rounded-md text-gris hover:bg-ok-suave hover:text-ok"
+                            className="inline-flex h-8 w-8 items-center justify-center rounded-md border border-ok/25 bg-ok-suave text-ok hover:bg-[#D3EADD]"
                           >
                             <MessageCircle className="h-4 w-4" />
                           </a>

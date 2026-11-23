@@ -13,6 +13,14 @@ import { Grafico } from '../components/Grafico';
 import type { Cliente } from '../lib/types';
 
 const mesISO = (d: Date) => format(d, 'yyyy-MM');
+/** Colores de cada segmento: verde los que vuelven, azul los nuevos, ámbar en riesgo y rojo perdidos. */
+const COLOR_SEGMENTO: Record<Segmento, { barra: string; numero: string }> = {
+  leal: { barra: '#1E7B4F', numero: '#1E7B4F' },
+  recurrente: { barra: '#5FA883', numero: '#1B1D21' },
+  nuevo: { barra: '#2156A5', numero: '#1B1D21' },
+  riesgo: { barra: '#D99A2B', numero: '#9A5A00' },
+  perdido: { barra: '#D7141F', numero: '#B0101A' },
+};
 /** Pasados estos días sin contacto, un seguimiento sale de «hoy» y pasa a «Por recuperar». */
 const DIAS_RECUPERAR = 90;
 
@@ -327,14 +335,24 @@ export default function Inicio() {
 
       <div className="grid gap-5 xl:grid-cols-[minmax(0,1fr)_380px]">
         <Panel titulo="Segmentos de clientes de aceite" sinRelleno>
+          {fichas.length > 0 && (
+            <div className="flex h-2.5 gap-0.5 overflow-hidden rounded-full mx-5 mt-4" aria-hidden="true">
+              {SEGMENTOS.map((s) => (
+                <span key={s.id} style={{ flexGrow: segmentos.get(s.id)?.length ?? 0, background: COLOR_SEGMENTO[s.id].barra }} />
+              ))}
+            </div>
+          )}
           <div className="grid divide-y divide-linea sm:grid-cols-5 sm:divide-x sm:divide-y-0">
             {SEGMENTOS.map((s) => {
               const fs = segmentos.get(s.id) ?? [];
               const monto = Math.round(fs.reduce((a, f) => a + f.totalPagado, 0));
               return (
                 <button key={s.id} type="button" onClick={() => setSegVer(s.id)} className="flex flex-col items-start justify-start px-5 py-4 text-left hover:bg-[#FAFAFB]">
-                  <p className="min-h-[40px] text-sm font-semibold sm:min-h-[40px]">{s.nombre}</p>
-                  <p className="mt-1 font-display text-3xl font-bold leading-none num">{fs.length}</p>
+                  <p className="flex min-h-[40px] gap-2 text-sm font-semibold sm:min-h-[40px]">
+                    <span className="mt-[5px] h-2.5 w-2.5 shrink-0 rounded-[3px]" style={{ background: COLOR_SEGMENTO[s.id].barra }} />
+                    {s.nombre}
+                  </p>
+                  <p className="mt-1 font-display text-3xl font-bold leading-none num" style={{ color: COLOR_SEGMENTO[s.id].numero }}>{fs.length}</p>
                   <p className="mt-1.5 text-[13px] text-gris num">{soles(monto)}</p>
                   <p className="mt-2 text-xs text-gris-claro">{s.regla}</p>
                 </button>
@@ -441,7 +459,7 @@ function BotonWa({ celular }: { celular: string }) {
       rel="noreferrer"
       title={`Escribir a ${formatoCelular(celular)}`}
       aria-label={`Escribir por WhatsApp a ${formatoCelular(celular)}`}
-      className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-md border border-linea text-gris hover:border-ok/40 hover:bg-ok-suave hover:text-ok"
+      className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-md border border-ok/25 bg-ok-suave text-ok hover:bg-[#D3EADD]"
     >
       <MessageCircle className="h-4 w-4" />
     </a>

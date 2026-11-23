@@ -514,7 +514,7 @@ function Registro({ onEditar, onNuevo }: { onEditar: (n: NumeroNuevo) => void; o
                       {n.clienteId && <p className="mt-1 text-[11px] font-semibold text-ok">En la base</p>}
                     </Td>
                     <Td onClick={(ev) => ev.stopPropagation()}>
-                      <a href={enlaceWhatsApp(n.celular)} target="_blank" rel="noreferrer" title="Abrir WhatsApp" className="flex h-8 w-8 items-center justify-center rounded-md text-ok hover:bg-ok-suave">
+                      <a href={enlaceWhatsApp(n.celular)} target="_blank" rel="noreferrer" title="Abrir WhatsApp" className="flex h-8 w-8 items-center justify-center rounded-md border border-ok/25 bg-ok-suave text-ok hover:bg-[#D3EADD]">
                         <MessageCircle className="h-4 w-4" />
                       </a>
                     </Td>

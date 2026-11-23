@@ -36,7 +36,7 @@ import {
 
 const ICONO_TIPO: Record<TipoInteraccion, JSX.Element> = {
   llamada: <Phone className="h-3.5 w-3.5" />,
-  whatsapp: <MessageCircle className="h-3.5 w-3.5" />,
+  whatsapp: <MessageCircle className="h-3.5 w-3.5 text-ok" />,
   presencial: <Store className="h-3.5 w-3.5" />,
   nota: <StickyNote className="h-3.5 w-3.5" />,
   estado: <ArrowRightLeft className="h-3.5 w-3.5" />,
