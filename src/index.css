@@ -10,7 +10,7 @@
 @tailwind utilities;
 
 @layer base {
-  html { -webkit-text-size-adjust: 100%; }
+  html { -webkit-text-size-adjust: 100%; zoom: var(--z, 1); }
   body { @apply bg-pagina font-sans text-tinta antialiased; font-feature-settings: 'tnum' 0; }
   :focus-visible { outline: 2px solid #D7141F; outline-offset: 2px; }
   input:focus-visible, select:focus-visible, textarea:focus-visible { outline: none; }

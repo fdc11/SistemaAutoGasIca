@@ -397,7 +397,7 @@ export function Modal({
         aria-modal="true"
         aria-label={titulo}
         onMouseDown={(e) => e.stopPropagation()}
-        className={cx('flex max-h-[92vh] w-full flex-col rounded-t-3xl bg-white shadow-modal sm:rounded-3xl', anchos[ancho])}
+        className={cx('flex max-h-[calc(92vh/var(--z,1))] w-full flex-col rounded-t-3xl bg-white shadow-modal sm:rounded-3xl', anchos[ancho])}
       >
         <div className="flex items-start justify-between gap-4 px-6 pb-3 pt-5">
           <div>
